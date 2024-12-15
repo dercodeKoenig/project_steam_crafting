@@ -3,6 +3,7 @@ package ProjectSteamCrafting.Blocks.Mechanics.HandGenerator;
 import ARLib.obj.Face;
 import ARLib.obj.ModelFormatException;
 import ARLib.obj.WavefrontObject;
+import ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase;
 import ProjectSteam.Static;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -13,6 +14,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -131,11 +133,14 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             m2.rotate(new Quaternionf().fromAxisAngleDeg(0f,0f,1f,-(float)b*180f/(float)Math.PI));
             m2.rotate(new Quaternionf().fromAxisAngleDeg(0f,0f,1f,180f)           );
 
-            shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
-            shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
-            shader.apply();
-            tile.vertexBuffer3.bind();
-            tile.vertexBuffer3.draw();
+            BlockEntity t = tile.getLevel().getBlockEntity(tile.getBlockPos().relative(facing));
+            if (t instanceof EntityCrankShaftBase cs) {
+                shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+                shader.apply();
+                tile.vertexBuffer3.bind();
+                tile.vertexBuffer3.draw();
+            }
 
             m2 = new Matrix4f(m1);
             float sieveTargetX = 0.4f+(float) (translationX+Math.cos(b)*armLength);
