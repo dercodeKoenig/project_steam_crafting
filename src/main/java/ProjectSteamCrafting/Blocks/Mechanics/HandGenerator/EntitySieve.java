@@ -29,6 +29,8 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     MeshData mesh;
     VertexBuffer vertexBuffer2;
     MeshData mesh2;
+    VertexBuffer vertexBuffer3;
+    MeshData mesh3;
 
     public static double MAX_FORCE = 100;
     public static double MAX_SPEED = 20;
@@ -86,6 +88,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             RenderSystem.recordRenderCall(() -> {
                 vertexBuffer.close();
                 vertexBuffer2.close();
+                vertexBuffer3.close();
             });
 
         }
@@ -137,6 +140,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             RenderSystem.recordRenderCall(() -> {
                 vertexBuffer = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
                 vertexBuffer2 = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+                vertexBuffer3 = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
             });
         }
 
