@@ -1,7 +1,16 @@
 {
     "variants": {
-        "": {
-            "model": "projectsteam_crafting:block/sieve"
+        "facing=north": {
+            "model": "projectsteam_crafting:block/sieve", "y": 90
+        },
+        "facing=south": {
+            "model": "projectsteam_crafting:block/sieve", "y": 270
+        },
+        "facing=west": {
+            "model": "projectsteam_crafting:block/sieve", "y": 0
+        },
+        "facing=east": {
+            "model": "projectsteam_crafting:block/sieve", "y": 180
         }
     }
 }

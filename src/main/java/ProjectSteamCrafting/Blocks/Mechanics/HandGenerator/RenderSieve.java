@@ -27,7 +27,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
     static {
         try {
-            model = new WavefrontObject(ResourceLocation.fromNamespaceAndPath("projectsteam_crafting", "objmodels/sieve.obj"));
+            model = new WavefrontObject(ResourceLocation.fromNamespaceAndPath("projectsteam_crafting", "objmodels/mechanical_sieve.obj"));
         } catch (ModelFormatException ex) {
             throw new RuntimeException(ex);
         }
@@ -40,8 +40,6 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
 
     void renderModelWithLight(EntitySieve tile, int light) {
-        if(true)return;
-
 
         ByteBufferBuilder byteBuffer;
         BufferBuilder b;
@@ -49,7 +47,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
         tile.vertexBuffer2.bind();
         byteBuffer = new ByteBufferBuilder(1024);
         b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("fly_wheel").faces) {
+        for (Face i : model.groupObjects.get("sieve.001").faces) {
             i.addFaceForRender(new PoseStack(), b, light, 0, 0xffffffff);
         }
         tile.mesh2 = b.build();
@@ -59,7 +57,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
         tile.vertexBuffer.bind();
         byteBuffer = new ByteBufferBuilder(1024);
         b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("hand_wheel").faces) {
+        for (Face i : model.groupObjects.get("sieve.002").faces) {
             i.addFaceForRender(new PoseStack(), b, light, 0, 0xffffffff);
         }
         tile.mesh = b.build();
@@ -69,7 +67,6 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
     @Override
     public void render(EntitySieve tile, float partialTick, PoseStack stack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
-if(true)return;
 
         BlockState axleState = tile.getBlockState();
         if (axleState.getBlock() instanceof BlockSieve) {
@@ -91,38 +88,32 @@ if(true)return;
             m1 = m1.mul(stack.last().pose());
             m1 = m1.translate(0.5f, 0.5f, 0.5f);
 
-            double rotorRotationMultiplier = 1;
             if(facing == Direction.WEST){
-                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 90f));
+                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 0f));
             }
             if(facing == Direction.EAST){
-                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 270f));
-                rotorRotationMultiplier = -1;
+                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 180f));
+
             }
             if(facing == Direction.SOUTH){
-                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 180f));
-                rotorRotationMultiplier = -1;
+                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 90f));
             }
             if(facing == Direction.NORTH){
-                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 0f));
-                //rotorRotationMultiplier = -1;
+                m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 270f));
             }
 
             Matrix4f m2 = new Matrix4f(m1);
-            m2 = m2.translate(0.0f, 0.0f, -0.2f);
-            m2 = m2.rotate(new Quaternionf().fromAxisAngleDeg(0f, 0f, 1.0f, (float) (rotorRotationMultiplier*( tile.myMechanicalBlock.currentRotation+rad_to_degree(tile.myMechanicalBlock.internalVelocity) / TPS*partialTick))));
+
+            m2.translate((float) Math.sin(tile.myMechanicalBlock.currentRotation / 180 * Math.PI)*0.07f,0,0);
+
             shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
-            shader.getUniform("NormalMatrix").set(new Matrix3f(m2).invert().transpose());
 
             shader.apply();
             tile.vertexBuffer2.bind();
             tile.vertexBuffer2.draw();
 
-            m2 = new Matrix4f(m1);
-            m2 = m2.translate(0.0f, 0.1f, 0.2f);
-            m2 = m2.rotate(new Quaternionf().fromAxisAngleDeg(0f, 1f, 0f, (float) (rotorRotationMultiplier*( tile.myMechanicalBlock.currentRotation+rad_to_degree(tile.myMechanicalBlock.internalVelocity) / TPS*partialTick))));
+
             shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
-            shader.getUniform("NormalMatrix").set(new Matrix3f(m2).invert().transpose());
 
             shader.apply();
             tile.vertexBuffer.bind();
