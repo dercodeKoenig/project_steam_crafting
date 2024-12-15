@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "pattern": [
     "SPS",
-    "PPP",
+    "P P",
     "SPS"
   ],
   "key": {
@@ -14,7 +14,7 @@
     }
   },
   "result": {
-    "id": "projectsteam:casing",
+    "id": "projectsteam_crafting:sieve",
     "count": 1
   }
 }

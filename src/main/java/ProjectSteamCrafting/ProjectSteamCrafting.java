@@ -21,7 +21,7 @@ import static ProjectSteam.Registry.PROJECTSTEAM_CREATIVETAB;
 import static ProjectSteamCrafting.Registry.*;
 
 
-@Mod("projectsteam")
+@Mod("projectsteam_crafting")
 public class ProjectSteamCrafting {
 
     public ProjectSteamCrafting(IEventBus modEventBus, ModContainer modContaine) throws IOException {

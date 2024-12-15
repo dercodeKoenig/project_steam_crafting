@@ -3,7 +3,6 @@ package ProjectSteamCrafting.Blocks.Mechanics.HandGenerator;
 import ARLib.obj.Face;
 import ARLib.obj.ModelFormatException;
 import ARLib.obj.WavefrontObject;
-import ProjectSteamCrafting.Static;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
@@ -18,7 +17,7 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
-import static ProjectSteamCrafting.Static.*;
+import static ProjectSteam.Static.*;
 import static net.minecraft.client.renderer.RenderStateShard.*;
 
 public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
@@ -28,7 +27,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
     static {
         try {
-            model = new WavefrontObject(ResourceLocation.fromNamespaceAndPath("projectsteam", "objmodels/handcranked_generator.obj"));
+            model = new WavefrontObject(ResourceLocation.fromNamespaceAndPath("projectsteam_crafting", "objmodels/sieve.obj"));
         } catch (ModelFormatException ex) {
             throw new RuntimeException(ex);
         }
@@ -41,6 +40,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
 
     void renderModelWithLight(EntitySieve tile, int light) {
+        if(true)return;
 
 
         ByteBufferBuilder byteBuffer;
@@ -69,12 +69,13 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
     @Override
     public void render(EntitySieve tile, float partialTick, PoseStack stack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
+if(true)return;
 
         BlockState axleState = tile.getBlockState();
         if (axleState.getBlock() instanceof BlockSieve) {
             Direction facing = axleState.getValue(BlockSieve.FACING);
 
-            RenderSystem.setShader(Static::getEntitySolidDynamicNormalShader);
+            RENDERTYPE_ENTITY_SOLID_SHADER.setupRenderState();
             LIGHTMAP.setupRenderState();
             LEQUAL_DEPTH_TEST.setupRenderState();
             NO_TRANSPARENCY.setupRenderState();
@@ -133,6 +134,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             LIGHTMAP.clearRenderState();
             LEQUAL_DEPTH_TEST.clearRenderState();
             NO_TRANSPARENCY.clearRenderState();
+            RENDERTYPE_ENTITY_SOLID_SHADER.clearRenderState();
         }
     }
 }
