@@ -161,7 +161,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         myMechanicalBlock.mechanicalTick();
 
         if(!level.isClientSide) {
-            if (ticksRemainingForForce > 0) {
+            if (ticksRemainingForForce > 0 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
                 ticksRemainingForForce--;
                 myForce = MAX_FORCE - 1 * myMechanicalBlock.internalVelocity;
             } else {
