@@ -81,6 +81,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
     @Override
     public void render(EntitySieve tile, float partialTick, PoseStack stack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
+        if(tile.isRemoved())return;
         BlockState axleState = tile.getBlockState();
         if (axleState.getBlock() instanceof BlockSieve) {
             Direction facing = axleState.getValue(BlockSieve.FACING);
@@ -125,7 +126,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
                     (facing.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1 : -1)
                     *(facing.getAxis() == Direction.Axis.X ? 1 : -1);
 
-            double a = tile.myMechanicalBlock.currentRotation / 180 * Math.PI + tile.myMechanicalBlock.internalVelocity/TPS*partialTick;
+            double a = tile.myMechanicalBlock.currentRotation / 180 * Math.PI + tile.myMechanicalBlock.internalVelocity/TPS*(partialTick+1); // I have no idea why but it is always one tick behind so i do partialtick+1
             float translationX =  -1f+(float) Math.sin(a) * crankshaftR * XRotationMultiplier;
             float translationY =  (float) Math.cos(a) * crankshaftR;
             double b = Math.asin((translationY-targetHeight) / armLength);

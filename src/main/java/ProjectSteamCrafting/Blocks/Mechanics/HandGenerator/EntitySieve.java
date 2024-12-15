@@ -40,7 +40,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     int ticksRemainingForForce = 0;
 
     double myFriction = 30;
-    double myInertia = 0.1;
+    double myInertia = 1;
     double maxStress = 100;
     double myForce;
 
@@ -160,12 +160,15 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     public void tick() {
         myMechanicalBlock.mechanicalTick();
 
-        if (ticksRemainingForForce > 0) {
-            ticksRemainingForForce--;
-            myForce = MAX_FORCE;
-        } else {
-            myForce = 0;
+        if(!level.isClientSide) {
+            if (ticksRemainingForForce > 0) {
+                ticksRemainingForForce--;
+                myForce = MAX_FORCE - 1 * myMechanicalBlock.internalVelocity;
+            } else {
+                myForce = 0;
+            }
         }
+
     }
 
 
