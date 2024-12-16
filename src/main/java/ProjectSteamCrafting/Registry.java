@@ -1,16 +1,14 @@
 package ProjectSteamCrafting;
 
-import ProjectSteamCrafting.Blocks.Mechanics.HandGenerator.BlockSieve;
-import ProjectSteamCrafting.Blocks.Mechanics.HandGenerator.EntitySieve;
+import ProjectSteamCrafting.Items.Mesh.StringMesh;
+import ProjectSteamCrafting.Sieve.BlockSieve;
+import ProjectSteamCrafting.Sieve.EntitySieve;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.Supplier;
 
@@ -32,7 +30,10 @@ public class Registry {
             () -> BlockEntityType.Builder.of(EntitySieve::new, SIEVE.get()).build(null)
     );
 
-
+public static final Supplier<Item> STRING_MESH = ITEMS.register(
+        "string_mesh",
+        () -> new StringMesh()
+);
 
     static {
         registerBlockItem("sieve", SIEVE);

@@ -1,19 +1,17 @@
 package ProjectSteamCrafting;
 
 
-import ProjectSteamCrafting.Blocks.Mechanics.HandGenerator.RenderSieve;
+import ProjectSteamCrafting.Sieve.RenderSieve;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 import java.io.IOException;
 
@@ -53,6 +51,7 @@ public class ProjectSteamCrafting {
     private void addCreative(BuildCreativeModeTabContentsEvent e) {
         if (e.getTab().equals(PROJECTSTEAM_CREATIVETAB.get())) {
             e.accept(SIEVE.get());
+            e.accept(STRING_MESH.get());
         }
     }
 

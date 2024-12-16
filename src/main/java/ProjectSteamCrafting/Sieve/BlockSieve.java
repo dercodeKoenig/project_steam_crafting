@@ -1,4 +1,4 @@
-package ProjectSteamCrafting.Blocks.Mechanics.HandGenerator;
+package ProjectSteamCrafting.Sieve;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -52,10 +52,8 @@ public class BlockSieve extends Block implements EntityBlock {
     public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
         BlockEntity b = level.getBlockEntity(pos);
         if(b instanceof EntitySieve h)
-            if(h.onPlayerClicked(player.isShiftKeyDown())){
-                player.causeFoodExhaustion(0.5f);
-            }
-        return InteractionResult.SUCCESS_NO_ITEM_USED;
+            return h.use(player);
+        return InteractionResult.PASS;
     }
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {

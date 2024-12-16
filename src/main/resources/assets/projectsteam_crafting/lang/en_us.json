@@ -1,4 +1,6 @@
 {
   "block.projectsteam.sieve": "Sieve",
-  "item.projectsteam.sieve": "Sieve"
+  "item.projectsteam.sieve": "Sieve",
+
+  "item.projectsteam.string_mesh": "String Mesh"
 }

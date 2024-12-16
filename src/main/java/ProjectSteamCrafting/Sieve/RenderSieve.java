@@ -1,4 +1,4 @@
-package ProjectSteamCrafting.Blocks.Mechanics.HandGenerator;
+package ProjectSteamCrafting.Sieve;
 
 import ARLib.obj.Face;
 import ARLib.obj.ModelFormatException;
@@ -8,18 +8,21 @@ import ProjectSteam.Static;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Quaternionfc;
 
 import static ProjectSteam.Static.*;
 import static net.minecraft.client.renderer.RenderStateShard.*;
@@ -154,9 +157,16 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             tile.vertexBuffer.draw();
 
 
-            //shader.apply();
-            //tile.vertexBuffer2.bind();
-            //tile.vertexBuffer2.draw();
+            if(tile.myMesh.getItem() instanceof IMesh mesh) {
+                RenderSystem.setShader(GameRenderer::getRendertypeEntityCutoutNoCullShader);
+                RenderSystem.setShaderTexture(0, mesh.getTexture());
+                shader = RenderSystem.getShader();
+                shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                shader.apply();
+
+                tile.vertexBuffer2.bind();
+                tile.vertexBuffer2.draw();
+            }
 
 
 
