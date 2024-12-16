@@ -147,7 +147,13 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             }
         }
         if (tag.contains("inputs")) {
+            ItemStack oldStack =myInputs.copy();
             myInputs = ItemStack.parse(level.registryAccess(), tag.getCompound("inputs")).get();
+
+            if(oldStack.getItem().equals(myInputs.getItem()) && myInputs.getCount() +1 == oldStack.getCount()) {
+                // this was an update that the recipe was processed so myStack decreased by one, update the progress
+                currentProgress = 0;
+            }
         }
         if (tag.contains("timeRequired")) {
             client_syncedCurrentRecipeTime = tag.getDouble("timeRequired");
@@ -351,6 +357,21 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         return InteractionResult.PASS;
     }
 
+    void getItemsOnTop(){
+        double minX = getBlockPos().getX();
+        double minY = getBlockPos().getY()+0.5;
+        double minZ = getBlockPos().getZ();
+        double maxX = minX + 1;
+        double maxY = minY + 1.5;
+        double maxZ = minZ + 1;
+
+
+        for(ItemEntity i : level.getEntitiesOfClass(ItemEntity.class, new AABB(minX, minY, minZ, maxX, maxY, maxZ))){
+            tryAddElementToInventory(i.getItem());
+            i.setExtendedLifetime();
+        }
+    }
+
     public void tick() {
         myMechanicalBlock.mechanicalTick();
 
@@ -365,24 +386,14 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         }
         if (!level.isClientSide) {
             if(myInputs.getCount() < maxStackSizeForSieve && !myMesh.isEmpty() && level.getGameTime() % 51 == 0){
-                double minX = getBlockPos().getX();
-                double minY = getBlockPos().getY()+0.5;
-                double minZ = getBlockPos().getZ();
-                double maxX = minX + 1;
-                double maxY = minY + 1.5;
-                double maxZ = minZ + 1;
-
-
-                for(ItemEntity i : level.getEntitiesOfClass(ItemEntity.class, new AABB(minX, minY, minZ, maxX, maxY, maxZ))){
-                    tryAddElementToInventory(i.getItem());
-                    i.setExtendedLifetime();
-                }
+                getItemsOnTop();
             }
             if (currentRecipe != null) {
                 currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
                 if (currentProgress >= currentRecipe.timeRequired) {
                     completeRecipe();
                     currentProgress = 0;
+                    getItemsOnTop();
                 }
             } else {
                 if (!myInputs.isEmpty() && !myMesh.isEmpty()) {
@@ -399,8 +410,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             if (!myInputs.isEmpty()) {
                 currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
                 if (currentProgress > client_syncedCurrentRecipeTime) {
-                    currentProgress = 0;
-                    myInputs.shrink(1);
+
                 }
 
                 if (myInputs.getItem() instanceof BlockItem b) {
@@ -421,7 +431,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                         );
                     }
                 }
-            }
+            }else currentProgress =0;
         }
     }
 

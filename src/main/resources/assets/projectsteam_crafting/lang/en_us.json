@@ -1,6 +1,6 @@
 {
-  "block.projectsteam.sieve": "Sieve",
-  "item.projectsteam.sieve": "Sieve",
+  "block.projectsteam_crafting.sieve": "Sieve",
+  "item.projectsteam_crafting.sieve": "Sieve",
 
-  "item.projectsteam.string_mesh": "String Mesh"
+  "item.projectsteam_crafting.string_mesh": "String Mesh"
 }
