@@ -2,9 +2,7 @@ package ProjectSteamCrafting.Sieve;
 
 import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.MeshData;
-import com.mojang.blaze3d.vertex.VertexBuffer;
+import ARLib.utils.ItemUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -13,7 +11,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -21,8 +21,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.loading.FMLEnvironment;
 import ProjectSteam.Core.AbstractMechanicalBlock;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.ICrankShaftConnector;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.BlockCrankShaftBase;
@@ -35,12 +33,16 @@ import static ProjectSteamCrafting.Registry.ENTITY_SIEVE;
 
 public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
+    static SieveConfig config = SieveConfigLoader.loadConfig();
 
     ItemStack myMesh = ItemStack.EMPTY;
     ItemStack myInputs = ItemStack.EMPTY;
 
-    public static double MAX_FORCE = 100;
-    public static double MAX_SPEED = 20;
+    SieveConfig.MachineRecipe currentRecipe = null;
+
+    public static double click_force = config.clickForce;
+    public static double k = config.k;
+    public static double max_speed = 20;
     int ticksRemainingForForce = 0;
 
 
@@ -67,7 +69,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
         @Override
         public double getTorqueProduced(Direction face) {
-            double actualForce = myForce * Math.max(0, (1 - Math.abs(internalVelocity) / MAX_SPEED));
+            double actualForce = myForce * Math.max(0, (1 - Math.abs(internalVelocity) / max_speed));
             return actualForce;
         }
 
@@ -189,6 +191,44 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         }
     }
 
+    SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs){
+        for (SieveConfig.MachineRecipe i : config.recipes) {
+            SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
+            if (ItemUtils.matches(input.id, inputs)) {
+                return i;
+            }
+        }
+        return null;
+    }
+    void completeRecipe(){
+        if(currentRecipe != null){
+
+
+            currentRecipe = null;
+        }
+    }
+
+    boolean tryAddElementToInventory(ItemStack stack){
+        if(stack.isEmpty())return false;
+
+        if(myInputs.isEmpty()) {
+         if(getRecipeForInputs(stack)!=null){
+             myInputs = stack.copyWithCount(1);
+             stack.shrink(1);
+             return true;
+         }
+        }else{
+            if(ItemStack.isSameItemSameComponents(stack, myInputs)){
+                int maxStackSize = myInputs.getMaxStackSize();
+                int toAdd = Math.min(maxStackSize - myInputs.getCount(), 1);
+                myInputs.grow(toAdd);
+                stack.shrink(toAdd);
+                return true;
+            }
+        }
+        return  false;
+    }
+
     public InteractionResult use(Player player) {
         if (!player.isShiftKeyDown()) {
             if (player.getMainHandItem().getItem() instanceof IMesh) {
@@ -198,7 +238,12 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 sendMeshInfoToClient();
                 setChanged();
                 return InteractionResult.SUCCESS;
-            } else {
+            }
+            if(tryAddElementToInventory(player.getMainHandItem()))return InteractionResult.SUCCESS;
+            if(tryAddElementToInventory(player.getOffhandItem()))return InteractionResult.SUCCESS;
+
+
+            if(player.getMainHandItem().isEmpty()){
                 if (ticksRemainingForForce < 5 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
                     ticksRemainingForForce += 5;
                     player.causeFoodExhaustion(0.5f);
@@ -220,13 +265,20 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (!level.isClientSide) {
             if (ticksRemainingForForce > 0 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
                 ticksRemainingForForce--;
-                myForce = MAX_FORCE - 1 * myMechanicalBlock.internalVelocity;
+                myForce = click_force - k * myMechanicalBlock.internalVelocity;
             } else {
                 myForce = 0;
                 ticksRemainingForForce = 0;
             }
         }
 
+        if(currentRecipe!=null){
+
+        }else{
+            if(!myInputs.isEmpty()){
+                currentRecipe = getRecipeForInputs(myInputs);
+            }
+        }
     }
 
 

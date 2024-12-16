@@ -119,6 +119,9 @@ dependencies {
     implementation(files('libs/arlib-1.0.1-deobf.jar'))
     implementation(files('libs/projectsteam-1.21.1-1.0.3-deobf.jar'))
 
+    implementation 'com.google.code.gson:gson:2.10'
+
+
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime

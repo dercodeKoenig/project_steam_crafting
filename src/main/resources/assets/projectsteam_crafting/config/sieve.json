@@ -1,0 +1,19 @@
+{
+  "baseResistance": 30.0,
+  "k": 10,
+  "clickForce": 100,
+  "_comment1" : "There should be exactly one inputItems element for every recipe. amount and p are ignored for inputs.",
+  "_comment2" : "For Outputs you can have as many items as you want where p is the probability to create the output",
+  "recipes": [
+    {
+      "inputItems": [
+        { "id": "minecraft:sand", "amount": 1, "p": 1.0 }
+      ],
+      "outputItems": [
+        { "id": "minecraft:gold_nugget", "amount": 2, "p": 1.0 }
+      ],
+      "timeRequired": 1.0,
+      "additionalResistance": 50.0
+    }
+  ]
+}
