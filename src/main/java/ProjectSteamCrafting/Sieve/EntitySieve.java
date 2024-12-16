@@ -17,6 +17,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
@@ -32,6 +33,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -276,9 +279,19 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                     }
                 }
                 ItemStack output = ItemUtils.getItemStackFromId(item.id, actual_num);
-                ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), output);
-                level.addFreshEntity(ie);
-
+                for(Direction i : Direction.values()){
+                    IItemHandler inv = level.getCapability(Capabilities.ItemHandler.BLOCK,getBlockPos().relative(i),i.getOpposite());
+                    if(inv instanceof IItemHandler) {
+                        for (int j = 0; j < inv.getSlots(); j++) {
+                            output = inv.insertItem(j, output, false);
+                            if (output.isEmpty()) break;
+                        }
+                    }
+                }
+                if(!output.isEmpty()) {
+                    ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), output);
+                    level.addFreshEntity(ie);
+                }
                 myInputs.shrink(1);
                 broadcastChangeOfInventoryAndSetChanged();
             }
@@ -351,21 +364,18 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             }
         }
         if (!level.isClientSide) {
-            if(myInputs.getCount() < maxStackSizeForSieve){
+            if(myInputs.getCount() < maxStackSizeForSieve && !myMesh.isEmpty() && level.getGameTime() % 51 == 0){
                 double minX = getBlockPos().getX();
-                double minY = getBlockPos().getY();
+                double minY = getBlockPos().getY()+0.5;
                 double minZ = getBlockPos().getZ();
                 double maxX = minX + 1;
                 double maxY = minY + 1.5;
                 double maxZ = minZ + 1;
 
-                // Get all entities of class ItemEntity within the bounding box
-                List<ItemEntity> itemEntities = level.getEntitiesOfClass(
-                        ItemEntity.class,
-                        new AABB(minX, minY, minZ, maxX, maxY, maxZ)
-                );
-                for(ItemEntity i : itemEntities){
+
+                for(ItemEntity i : level.getEntitiesOfClass(ItemEntity.class, new AABB(minX, minY, minZ, maxX, maxY, maxZ))){
                     tryAddElementToInventory(i.getItem());
+                    i.setExtendedLifetime();
                 }
             }
             if (currentRecipe != null) {
