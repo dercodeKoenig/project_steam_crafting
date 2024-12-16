@@ -14,8 +14,7 @@ public class SieveConfig {
             public List<Item> outputItems;
             public float timeRequired;
             public float additionalResistance;
-
-            public float currentProgress = 0;
+            public String requiredMesh;
 
             public static class Item {
                 public String id;

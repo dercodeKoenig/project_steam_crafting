@@ -208,7 +208,8 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
                 vertexBuffer2.bind();
                 vertexBuffer2.draw();
 
-                if (tile.myInputs.getItem() instanceof BlockItem bi) {
+                if (tile.myInputs.getItem() instanceof BlockItem bi ) {
+
                     if (!tile.lastInputStackForRender.getItem().equals(tile.myInputs.getItem())) {
                         updateRenderData(tile);
                         tile.lastInputStackForRender = tile.myInputs.copy();

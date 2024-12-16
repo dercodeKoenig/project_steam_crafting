@@ -3,11 +3,10 @@ package ProjectSteamCrafting.Sieve;
 import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
 import ARLib.utils.ItemUtils;
+import ProjectSteam.Static;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -16,16 +15,12 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import ProjectSteam.Core.AbstractMechanicalBlock;
@@ -135,6 +130,15 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (tag.contains("mesh")) {
             myMesh = ItemStack.parse(level.registryAccess(), tag.getCompound("mesh")).get();
         }
+
+        if (tag.contains("hasInput")) {
+            if (!tag.getBoolean("hasInput")) {
+                myInputs = ItemStack.EMPTY;
+            }
+        }
+        if (tag.contains("inputs")) {
+            myInputs = ItemStack.parse(level.registryAccess(), tag.getCompound("inputs")).get();
+        }
     }
 
     @Override
@@ -156,6 +160,10 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             CompoundTag meshTag = tag.getCompound("mesh");
             myMesh = ItemStack.parse(registries, meshTag).get();
         }
+        if (tag.contains("inputs")) {
+            CompoundTag inputsTag = tag.getCompound("inputs");
+            myInputs = ItemStack.parse(registries, inputsTag).get();
+        }
     }
 
     @Override
@@ -165,6 +173,10 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (!myMesh.isEmpty()) {
             Tag meshTag = myMesh.save(registries);
             tag.put("mesh", meshTag);
+        }
+        if (!myInputs.isEmpty()) {
+            Tag inputsTag = myInputs.save(registries);
+            tag.put("inputs", inputsTag);
         }
     }
 
@@ -195,13 +207,21 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             Tag meshTag = myMesh.save(level.registryAccess());
             meshInfo.put("mesh", meshTag);
         }
+
+        meshInfo.putBoolean("hasInput", !myMesh.isEmpty());
+        if (!myInputs.isEmpty()) {
+            Tag inputsTag = myInputs.save(level.registryAccess());
+            meshInfo.put("inputs", inputsTag);
+        }
+
         return meshInfo;
     }
 
-    void sendMeshInfoToClient() {
+    void broadcastChangeOfInventoryAndSetChanged() {
         if (!level.isClientSide) {
             CompoundTag meshInfo = getMeshUpdateTag();
             PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
+            setChanged();
         }
     }
 
@@ -211,12 +231,14 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             i.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i);
             myMesh = ItemStack.EMPTY;
+            broadcastChangeOfInventoryAndSetChanged();
         }
     }
 
     SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs){
         for (SieveConfig.MachineRecipe i : config.recipes) {
             SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
+            System.out.println(input.id+":"+ inputs);
             if (ItemUtils.matches(input.id, inputs)) {
                 return i;
             }
@@ -226,6 +248,20 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     void completeRecipe(){
         if(currentRecipe != null){
 
+            for(SieveConfig.MachineRecipe.Item item:currentRecipe.outputItems){
+                int actual_num = 0;
+                for(int i = 0; i < item.amount; ++i) {
+                    if (item.p >= 1.0F || Math.random() < (double)item.p) {
+                        ++actual_num;
+                    }
+                }
+                ItemStack output = ItemUtils.getItemStackFromId(item.id, actual_num);
+                ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), output);
+                level.addFreshEntity(ie);
+
+                myInputs.shrink(1);
+                broadcastChangeOfInventoryAndSetChanged();
+            }
 
             currentRecipe = null;
         }
@@ -238,6 +274,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
          if(getRecipeForInputs(stack)!=null){
              myInputs = stack.copyWithCount(1);
              stack.shrink(1);
+             broadcastChangeOfInventoryAndSetChanged();
              return true;
          }
         }else{
@@ -246,6 +283,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 int toAdd = Math.min(maxStackSize - myInputs.getCount(), 1);
                 myInputs.grow(toAdd);
                 stack.shrink(toAdd);
+                broadcastChangeOfInventoryAndSetChanged();
                 return true;
             }
         }
@@ -258,8 +296,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 removeMyMesh();
                 myMesh = player.getMainHandItem().copyWithCount(1);
                 player.getMainHandItem().shrink(1);
-                sendMeshInfoToClient();
-                setChanged();
+                broadcastChangeOfInventoryAndSetChanged();
                 return InteractionResult.SUCCESS;
             }
             if(tryAddElementToInventory(player.getMainHandItem()))return InteractionResult.SUCCESS;
@@ -275,8 +312,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             }
         } else {
             removeMyMesh();
-            sendMeshInfoToClient();
-            setChanged();
+            broadcastChangeOfInventoryAndSetChanged();
             return InteractionResult.SUCCESS;
         }
         return InteractionResult.PASS;
@@ -293,17 +329,21 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 myForce = 0;
                 ticksRemainingForForce = 0;
             }
-        }
 
-        if(currentRecipe!=null){
-
-        }else{
-            if(!myInputs.isEmpty()){
-                currentRecipe = getRecipeForInputs(myInputs);
+            if (currentRecipe != null) {
+                currentRecipe.currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f));
+                System.out.println(currentRecipe.currentProgress);
+                if (currentRecipe.currentProgress >= currentRecipe.timeRequired) {
+                    completeRecipe();
+                    System.out.println("completed recipe");
+                }
+            } else {
+                if (!myInputs.isEmpty()) {
+                    currentRecipe = getRecipeForInputs(myInputs);
+                }
             }
         }
     }
-
 
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T t) {
         ((EntitySieve) t).tick();
