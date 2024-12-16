@@ -11,18 +11,24 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+
+import java.nio.ByteBuffer;
 
 import static ProjectSteam.Static.*;
 import static net.minecraft.client.renderer.RenderStateShard.*;
@@ -84,6 +90,25 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
         byteBuffer.close();
     }
 
+    void updateRenderData(EntitySieve tile){
+        if(tile.myInputs.getItem() instanceof BlockItem bi) {
+            Block block = bi.getBlock();
+            BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
+            TextureAtlasSprite blockTexture = blockRenderer.getBlockModel(block.defaultBlockState()).getParticleIcon(ModelData.EMPTY);
+            tile.inputStackTexture = blockTexture.atlasLocation();
+            model.scaleUV("sieve.001", blockTexture.getU0(), blockTexture.getV0(), blockTexture.getU1(), blockTexture.getV1());
+            ByteBufferBuilder byteBuffer = new ByteBufferBuilder(1024);
+            BufferBuilder b= new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
+            for (Face i : model.groupObjects.get("sieve.001").faces) {
+                i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
+            }
+            model.scaleUV("sieve.001",0,0,1,1);
+            MeshData mesh = b.build();
+            tile.myInputRendererBuffer.bind();
+            tile.myInputRendererBuffer.upload(mesh);
+            byteBuffer.close();
+        }
+    }
 
     public RenderSieve(BlockEntityRendererProvider.Context c) {
         super();
@@ -172,6 +197,39 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
                 vertexBuffer2.bind();
                 vertexBuffer2.draw();
+
+                Matrix4f m3 = new Matrix4f(m2);
+                m3.translate(0, -0.01f, 0);
+                m3.rotate(new Quaternionf().fromAxisAngleDeg(1f, 0f, 0f, 180f));
+                shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m3, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                shader.getUniform("NormalMatrix").set((new Matrix3f(m3)).invert().transpose());
+                shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
+                shader.apply();
+                vertexBuffer2.bind();
+                vertexBuffer2.draw();
+
+                if (tile.myInputs.getItem() instanceof BlockItem bi) {
+                    if (!tile.lastInputStackForRender.getItem().equals(tile.myInputs.getItem())) {
+                        updateRenderData(tile);
+                        tile.lastInputStackForRender = tile.myInputs.copy();
+                    }
+                    RenderSystem.setShaderTexture(0, tile.inputStackTexture);
+                    m2.translate(0, 0.06f, 0);
+                    shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                    shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+                    shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
+                    shader.apply();
+                    tile.myInputRendererBuffer.bind();
+                    tile.myInputRendererBuffer.draw();
+
+                    m3.translate(0, -0.01f, 0);
+                    shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m3, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                    shader.getUniform("NormalMatrix").set((new Matrix3f(m3)).invert().transpose());
+                    shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
+                    shader.apply();
+                    tile.myInputRendererBuffer.bind();
+                    tile.myInputRendererBuffer.draw();
+                }
             }
 
 

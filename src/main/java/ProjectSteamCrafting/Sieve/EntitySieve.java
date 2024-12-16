@@ -3,12 +3,17 @@ package ProjectSteamCrafting.Sieve;
 import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
 import ARLib.utils.ItemUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.VertexBuffer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -19,11 +24,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import ProjectSteam.Core.AbstractMechanicalBlock;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.ICrankShaftConnector;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.BlockCrankShaftBase;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
@@ -35,14 +44,18 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     static SieveConfig config = SieveConfigLoader.loadConfig();
 
+    VertexBuffer myInputRendererBuffer;
+    ItemStack lastInputStackForRender= ItemStack.EMPTY;
+    ResourceLocation inputStackTexture = ResourceLocation.withDefaultNamespace("textures/block/air");
+
     ItemStack myMesh = ItemStack.EMPTY;
     ItemStack myInputs = ItemStack.EMPTY;
 
     SieveConfig.MachineRecipe currentRecipe = null;
 
-    public static double click_force = config.clickForce;
-    public static double k = config.k;
-    public static double max_speed = 20;
+    static double click_force = config.clickForce;
+     static double k = config.k;
+     static double max_speed = 20;
     int ticksRemainingForForce = 0;
 
 
@@ -93,11 +106,21 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             myOnloadTag.putUUID("ClientSieveOnload", Minecraft.getInstance().player.getUUID());
             PacketDistributor.sendToServer(PacketBlockEntity.getBlockEntityPacket(this, myOnloadTag));
         }
+        if(FMLEnvironment.dist == Dist.CLIENT){
+            RenderSystem.recordRenderCall(() -> {
+                myInputRendererBuffer = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+            });
+        }
     }
 
     @Override
     public void setRemoved() {
         removeMyMesh();
+        if(FMLEnvironment.dist == Dist.CLIENT){
+            RenderSystem.recordRenderCall(() -> {
+                myInputRendererBuffer.close();
+            });
+        }
         super.setRemoved();
     }
 
