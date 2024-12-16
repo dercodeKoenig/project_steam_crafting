@@ -35,22 +35,13 @@ import static ProjectSteamCrafting.Registry.ENTITY_SIEVE;
 
 public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
-    VertexBuffer vertexBuffer;
-    MeshData mesh;
-    VertexBuffer vertexBuffer2;
-    MeshData mesh2;
-    VertexBuffer vertexBuffer3;
-    MeshData mesh3;
-    int lastLight = 0;
-
 
     ItemStack myMesh = ItemStack.EMPTY;
+    ItemStack myInputs = ItemStack.EMPTY;
 
     public static double MAX_FORCE = 100;
     public static double MAX_SPEED = 20;
     int ticksRemainingForForce = 0;
-
-
 
 
     double myFriction = 30;
@@ -63,6 +54,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         public double getMaxStress() {
             return maxStress;
         }
+
         @Override
         public double getInertia(Direction face) {
             return myInertia;
@@ -103,13 +95,6 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     @Override
     public void setRemoved() {
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            RenderSystem.recordRenderCall(() -> {
-                vertexBuffer.close();
-                vertexBuffer2.close();
-                vertexBuffer3.close();
-            });
-        }
         removeMyMesh();
         super.setRemoved();
     }
@@ -117,24 +102,24 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     @Override
     public void readClient(CompoundTag tag) {
         myMechanicalBlock.mechanicalReadClient(tag);
-        if(tag.contains("hasMesh")){
-            if(!tag.getBoolean("hasMesh")){
+        if (tag.contains("hasMesh")) {
+            if (!tag.getBoolean("hasMesh")) {
                 myMesh = ItemStack.EMPTY;
             }
         }
-        if(tag.contains("mesh")){
-            myMesh = ItemStack.parse(level.registryAccess(),tag.getCompound("mesh")).get();
+        if (tag.contains("mesh")) {
+            myMesh = ItemStack.parse(level.registryAccess(), tag.getCompound("mesh")).get();
         }
     }
 
     @Override
     public void readServer(CompoundTag tag) {
         myMechanicalBlock.mechanicalReadServer(tag);
-        if(tag.contains("ClientSieveOnload")){
+        if (tag.contains("ClientSieveOnload")) {
             UUID from = tag.getUUID("ClientSieveOnload");
             ServerPlayer pfrom = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(from);
             CompoundTag meshInfo = getMeshUpdateTag();
-            PacketDistributor.sendToPlayer(pfrom,PacketBlockEntity.getBlockEntityPacket(this,meshInfo));
+            PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
         }
     }
 
@@ -142,9 +127,9 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         myMechanicalBlock.mechanicalLoadAdditional(tag, registries);
-        if(tag.contains("mesh")){
+        if (tag.contains("mesh")) {
             CompoundTag meshTag = tag.getCompound("mesh");
-            myMesh = ItemStack.parse(registries,meshTag).get();
+            myMesh = ItemStack.parse(registries, meshTag).get();
         }
     }
 
@@ -152,7 +137,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         myMechanicalBlock.mechanicalSaveAdditional(tag, registries);
-        if(!myMesh.isEmpty()){
+        if (!myMesh.isEmpty()) {
             Tag meshTag = myMesh.save(registries);
             tag.put("mesh", meshTag);
         }
@@ -165,7 +150,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             if (side == myState.getValue(BlockSieve.FACING)) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
                 if (t instanceof ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase cs) {
-                    if(cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockSieve.FACING).getAxis()) {
+                    if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockSieve.FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
                 }
@@ -176,39 +161,34 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     public EntitySieve(BlockPos pos, BlockState blockState) {
         super(ENTITY_SIEVE.get(), pos, blockState);
+    }
 
-        if (FMLEnvironment.dist == Dist.CLIENT) {
-            RenderSystem.recordRenderCall(() -> {
-                vertexBuffer = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
-                vertexBuffer2 = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
-                vertexBuffer3 = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
-            });
+    CompoundTag getMeshUpdateTag() {
+        CompoundTag meshInfo = new CompoundTag();
+        meshInfo.putBoolean("hasMesh", !myMesh.isEmpty());
+        if (!myMesh.isEmpty()) {
+            Tag meshTag = myMesh.save(level.registryAccess());
+            meshInfo.put("mesh", meshTag);
         }
+        return meshInfo;
+    }
 
+    void sendMeshInfoToClient() {
+        if (!level.isClientSide) {
+            CompoundTag meshInfo = getMeshUpdateTag();
+            PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
+        }
     }
-CompoundTag getMeshUpdateTag(){
-    CompoundTag meshInfo = new CompoundTag();
-    meshInfo.putBoolean("hasMesh", !myMesh.isEmpty());
-    if (!myMesh.isEmpty()) {
-        Tag meshTag = myMesh.save(level.registryAccess());
-        meshInfo.put("mesh", meshTag);
-    }
-    return meshInfo;
-}
-void sendMeshInfoToClient() {
-    if (!level.isClientSide) {
-        CompoundTag meshInfo = getMeshUpdateTag();
-        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
-    }
-}
-    void removeMyMesh(){
-        if(!myMesh.isEmpty()){
-            ItemEntity i = new ItemEntity(level,getBlockPos().getX(),getBlockPos().getY(),getBlockPos().getZ(),myMesh);
-            i.setDeltaMovement(0,0.2,0);
+
+    void removeMyMesh() {
+        if (!myMesh.isEmpty()) {
+            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), myMesh);
+            i.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i);
             myMesh = ItemStack.EMPTY;
         }
     }
+
     public InteractionResult use(Player player) {
         if (!player.isShiftKeyDown()) {
             if (player.getMainHandItem().getItem() instanceof IMesh) {
@@ -237,13 +217,13 @@ void sendMeshInfoToClient() {
     public void tick() {
         myMechanicalBlock.mechanicalTick();
 
-        if(!level.isClientSide) {
+        if (!level.isClientSide) {
             if (ticksRemainingForForce > 0 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
                 ticksRemainingForForce--;
                 myForce = MAX_FORCE - 1 * myMechanicalBlock.internalVelocity;
             } else {
                 myForce = 0;
-                ticksRemainingForForce =0;
+                ticksRemainingForForce = 0;
             }
         }
 

@@ -32,54 +32,61 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
     static WavefrontObject model;
     static ResourceLocation tex = ResourceLocation.fromNamespaceAndPath("projectsteam", "textures/block/planks.png");
 
+    static     VertexBuffer vertexBuffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
+    static MeshData mesh;
+    static VertexBuffer vertexBuffer2= new VertexBuffer(VertexBuffer.Usage.STATIC);
+    static MeshData mesh2;
+    static VertexBuffer vertexBuffer3= new VertexBuffer(VertexBuffer.Usage.STATIC);
+    static MeshData mesh3;
+
     static {
         try {
             model = new WavefrontObject(ResourceLocation.fromNamespaceAndPath("projectsteam_crafting", "objmodels/mechanical_sieve.obj"));
         } catch (ModelFormatException ex) {
             throw new RuntimeException(ex);
         }
+
+
+        ByteBufferBuilder byteBuffer;
+        BufferBuilder b;
+
+
+        byteBuffer = new ByteBufferBuilder(1024);
+        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
+        for (Face i : model.groupObjects.get("sieve.001").faces) {
+            i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
+        }
+        mesh2 = b.build();
+        vertexBuffer2.bind();
+        vertexBuffer2.upload(mesh2);
+        byteBuffer.close();
+
+
+        byteBuffer = new ByteBufferBuilder(1024);
+        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
+        for (Face i : model.groupObjects.get("sieve.002").faces) {
+            i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
+        }
+        mesh = b.build();
+        vertexBuffer.bind();
+        vertexBuffer.upload(mesh);
+        byteBuffer.close();
+
+
+        byteBuffer = new ByteBufferBuilder(1024);
+        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
+        for (Face i : model.groupObjects.get("arm").faces) {
+            i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
+        }
+        mesh3 = b.build();
+        vertexBuffer3.bind();
+        vertexBuffer3.upload(mesh3);
+        byteBuffer.close();
     }
 
 
     public RenderSieve(BlockEntityRendererProvider.Context c) {
         super();
-    }
-
-
-    void renderModelWithLight(EntitySieve tile, int light) {
-
-        ByteBufferBuilder byteBuffer;
-        BufferBuilder b;
-
-        tile.vertexBuffer2.bind();
-        byteBuffer = new ByteBufferBuilder(1024);
-        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("sieve.001").faces) {
-            i.addFaceForRender(new PoseStack(), b, light, 0, 0xffffffff);
-        }
-        tile.mesh2 = b.build();
-        tile.vertexBuffer2.upload(tile.mesh2);
-        byteBuffer.close();
-
-        tile.vertexBuffer.bind();
-        byteBuffer = new ByteBufferBuilder(1024);
-        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("sieve.002").faces) {
-            i.addFaceForRender(new PoseStack(), b, light, 0, 0xffffffff);
-        }
-        tile.mesh = b.build();
-        tile.vertexBuffer.upload(tile.mesh);
-        byteBuffer.close();
-
-        tile.vertexBuffer3.bind();
-        byteBuffer = new ByteBufferBuilder(1024);
-        b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("arm").faces) {
-            i.addFaceForRender(new PoseStack(), b, light, 0, 0xffffffff);
-        }
-        tile.mesh3 = b.build();
-        tile.vertexBuffer3.upload(tile.mesh3);
-        byteBuffer.close();
     }
 
     @Override
@@ -89,10 +96,6 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
         if (axleState.getBlock() instanceof BlockSieve) {
             Direction facing = axleState.getValue(BlockSieve.FACING);
 
-            if (packedLight != tile.lastLight) {
-                tile.lastLight = packedLight;
-                renderModelWithLight(tile, packedLight);
-            }
             Matrix4f m1 = new Matrix4f(RenderSystem.getModelViewMatrix());
             m1 = m1.mul(stack.last().pose());
             m1 = m1.translate(0.5f, 0.5f, 0.5f);
@@ -117,7 +120,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             LEQUAL_DEPTH_TEST.setupRenderState();
             NO_TRANSPARENCY.setupRenderState();
 
-            RenderSystem.setShader(Static::getEntitySolidDynamicNormalShader);
+            RenderSystem.setShader(Static::getEntitySolidDynamicNormalDynamicLightShader);
             ShaderInstance shader = RenderSystem.getShader();
             RenderSystem.setShaderTexture(0, tex);
 
@@ -141,9 +144,10 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             if (t instanceof EntityCrankShaftBase cs) {
                 shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
                 shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+                shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
                 shader.apply();
-                tile.vertexBuffer3.bind();
-                tile.vertexBuffer3.draw();
+                vertexBuffer3.bind();
+                vertexBuffer3.draw();
             }
 
             m2 = new Matrix4f(m1);
@@ -152,20 +156,22 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
             shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
             shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+            shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
             shader.apply();
-            tile.vertexBuffer.bind();
-            tile.vertexBuffer.draw();
+            vertexBuffer.bind();
+            vertexBuffer.draw();
 
 
             if(tile.myMesh.getItem() instanceof IMesh mesh) {
-                RenderSystem.setShader(GameRenderer::getRendertypeEntityCutoutNoCullShader);
                 RenderSystem.setShaderTexture(0, mesh.getTexture());
-                shader = RenderSystem.getShader();
+
                 shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+                shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
                 shader.apply();
 
-                tile.vertexBuffer2.bind();
-                tile.vertexBuffer2.draw();
+                vertexBuffer2.bind();
+                vertexBuffer2.draw();
             }
 
 
