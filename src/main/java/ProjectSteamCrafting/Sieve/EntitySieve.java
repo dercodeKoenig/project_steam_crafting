@@ -47,6 +47,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     ItemStack myInputs = ItemStack.EMPTY;
 
     SieveConfig.MachineRecipe currentRecipe = null;
+    double currentProgress;
 
     static double click_force = config.clickForce;
      static double k = config.k;
@@ -54,7 +55,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     int ticksRemainingForForce = 0;
 
 
-    double myFriction = 30;
+    double myFriction = config.baseResistance;
     double myInertia = 1;
     double maxStress = 100;
     double myForce;
@@ -208,7 +209,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             meshInfo.put("mesh", meshTag);
         }
 
-        meshInfo.putBoolean("hasInput", !myMesh.isEmpty());
+        meshInfo.putBoolean("hasInput", !myInputs.isEmpty());
         if (!myInputs.isEmpty()) {
             Tag inputsTag = myInputs.save(level.registryAccess());
             meshInfo.put("inputs", inputsTag);
@@ -231,23 +232,29 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             i.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i);
             myMesh = ItemStack.EMPTY;
+
+            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), myInputs);
+            i2.setDeltaMovement(0, 0.2, 0);
+            level.addFreshEntity(i2);
+            myMesh = ItemStack.EMPTY;
+
             broadcastChangeOfInventoryAndSetChanged();
         }
     }
 
     SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs){
         for (SieveConfig.MachineRecipe i : config.recipes) {
-            SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
-            System.out.println(input.id+":"+ inputs);
-            if (ItemUtils.matches(input.id, inputs)) {
-                return i;
+            if( ItemUtils.matches(i.requiredMesh, myMesh)) {
+                SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
+                if (ItemUtils.matches(input.id, inputs)) {
+                    return i;
+                }
             }
         }
         return null;
     }
     void completeRecipe(){
         if(currentRecipe != null){
-
             for(SieveConfig.MachineRecipe.Item item:currentRecipe.outputItems){
                 int actual_num = 0;
                 for(int i = 0; i < item.amount; ++i) {
@@ -262,9 +269,9 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 myInputs.shrink(1);
                 broadcastChangeOfInventoryAndSetChanged();
             }
-
             currentRecipe = null;
         }
+        myFriction = config.baseResistance;
     }
 
     boolean tryAddElementToInventory(ItemStack stack){
@@ -331,15 +338,15 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             }
 
             if (currentRecipe != null) {
-                currentRecipe.currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f));
-                System.out.println(currentRecipe.currentProgress);
-                if (currentRecipe.currentProgress >= currentRecipe.timeRequired) {
+                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
+                if (currentProgress >= currentRecipe.timeRequired) {
                     completeRecipe();
-                    System.out.println("completed recipe");
+                    currentProgress = 0;
                 }
             } else {
                 if (!myInputs.isEmpty()) {
                     currentRecipe = getRecipeForInputs(myInputs);
+                    myFriction = config.baseResistance +currentRecipe.additionalResistance;
                 }
             }
         }

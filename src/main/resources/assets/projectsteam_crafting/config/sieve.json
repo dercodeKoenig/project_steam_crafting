@@ -14,7 +14,7 @@
         { "id": "minecraft:gold_nugget", "amount": 2, "p": 1.0 }
       ],
       "timeRequired": 1.0,
-      "additionalResistance": 50.0
+      "additionalResistance": 20.0
     }
   ]
 }
