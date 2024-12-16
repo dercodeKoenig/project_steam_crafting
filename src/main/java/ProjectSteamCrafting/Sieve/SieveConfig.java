@@ -8,6 +8,7 @@ public class SieveConfig {
         public float k;
         public float clickForce;
         public List<MachineRecipe> recipes;
+    public int inventorySize;
 
         public static class MachineRecipe {
             public List<Item> inputItems;

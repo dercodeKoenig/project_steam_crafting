@@ -208,14 +208,14 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
                 vertexBuffer2.bind();
                 vertexBuffer2.draw();
 
-                if (tile.myInputs.getItem() instanceof BlockItem bi ) {
+                if (tile.myInputs.getItem() instanceof BlockItem bi) {
                     if (!tile.lastInputStackForRender.getItem().equals(tile.myInputs.getItem())) {
                         updateRenderData(tile);
                         tile.lastInputStackForRender = tile.myInputs.copy();
                     }
                     RenderSystem.setShaderTexture(0, tile.inputStackTexture);
                     float maxTranslateUp = 0.065f;
-                    float translateUp = (float)tile.myInputs.getCount() / tile.myInputs.getMaxStackSize() * maxTranslateUp+0.001f;
+                    float translateUp = (float) (((float)tile.myInputs.getCount()-tile.currentProgress/tile.client_syncedCurrentRecipeTime) / tile.maxStackSizeForSieve * maxTranslateUp+0.001f);
                     m2.translate(0, translateUp, 0);
                     shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
                     shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());

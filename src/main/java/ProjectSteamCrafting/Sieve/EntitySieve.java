@@ -10,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -26,11 +28,14 @@ import net.minecraft.world.level.block.state.BlockState;
 import ProjectSteam.Core.AbstractMechanicalBlock;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.ICrankShaftConnector;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.BlockCrankShaftBase;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
+import java.util.List;
 import java.util.UUID;
 
 import static ProjectSteamCrafting.Registry.ENTITY_SIEVE;
@@ -48,17 +53,18 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     SieveConfig.MachineRecipe currentRecipe = null;
     double currentProgress;
+    double client_syncedCurrentRecipeTime;
 
-    static double click_force = config.clickForce;
-     static double k = config.k;
-     static double max_speed = 20;
+     double click_force = config.clickForce;
+     double k = config.k;
+     double max_speed = 20;
+    int maxStackSizeForSieve = config.inventorySize;
+
     int ticksRemainingForForce = 0;
-
-
     double myFriction = config.baseResistance;
     double myInertia = 1;
     double maxStress = 100;
-    double myForce;
+    double myForce = 0;
 
     public AbstractMechanicalBlock myMechanicalBlock = new AbstractMechanicalBlock(0, this) {
         @Override
@@ -140,6 +146,12 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (tag.contains("inputs")) {
             myInputs = ItemStack.parse(level.registryAccess(), tag.getCompound("inputs")).get();
         }
+        if (tag.contains("timeRequired")) {
+            client_syncedCurrentRecipeTime = tag.getDouble("timeRequired");
+        }
+        if (tag.contains("syncMaxStackSize")) {
+            maxStackSizeForSieve = tag.getInt("syncMaxStackSize");
+        }
     }
 
     @Override
@@ -148,8 +160,9 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (tag.contains("ClientSieveOnload")) {
             UUID from = tag.getUUID("ClientSieveOnload");
             ServerPlayer pfrom = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(from);
-            CompoundTag meshInfo = getMeshUpdateTag();
-            PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
+            CompoundTag info = getMeshUpdateTag();
+            info.putInt("syncMaxStackSize", maxStackSizeForSieve);
+            PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, info));
         }
     }
 
@@ -228,15 +241,15 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     void removeMyMesh() {
         if (!myMesh.isEmpty()) {
-            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), myMesh);
+            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), myMesh);
             i.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i);
             myMesh = ItemStack.EMPTY;
 
-            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), myInputs);
+            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), myInputs);
             i2.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i2);
-            myMesh = ItemStack.EMPTY;
+            myInputs = ItemStack.EMPTY;
 
             broadcastChangeOfInventoryAndSetChanged();
         }
@@ -263,7 +276,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                     }
                 }
                 ItemStack output = ItemUtils.getItemStackFromId(item.id, actual_num);
-                ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY(), getBlockPos().getZ(), output);
+                ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), output);
                 level.addFreshEntity(ie);
 
                 myInputs.shrink(1);
@@ -286,7 +299,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
          }
         }else{
             if(ItemStack.isSameItemSameComponents(stack, myInputs)){
-                int maxStackSize = myInputs.getMaxStackSize();
+                int maxStackSize = Math.min(myInputs.getMaxStackSize(), maxStackSizeForSieve);
                 int toAdd = Math.min(maxStackSize - myInputs.getCount(), 1);
                 myInputs.grow(toAdd);
                 stack.shrink(toAdd);
@@ -336,7 +349,25 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 myForce = 0;
                 ticksRemainingForForce = 0;
             }
+        }
+        if (!level.isClientSide) {
+            if(myInputs.getCount() < maxStackSizeForSieve){
+                double minX = getBlockPos().getX();
+                double minY = getBlockPos().getY();
+                double minZ = getBlockPos().getZ();
+                double maxX = minX + 1;
+                double maxY = minY + 1.5;
+                double maxZ = minZ + 1;
 
+                // Get all entities of class ItemEntity within the bounding box
+                List<ItemEntity> itemEntities = level.getEntitiesOfClass(
+                        ItemEntity.class,
+                        new AABB(minX, minY, minZ, maxX, maxY, maxZ)
+                );
+                for(ItemEntity i : itemEntities){
+                    tryAddElementToInventory(i.getItem());
+                }
+            }
             if (currentRecipe != null) {
                 currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
                 if (currentProgress >= currentRecipe.timeRequired) {
@@ -344,9 +375,41 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                     currentProgress = 0;
                 }
             } else {
-                if (!myInputs.isEmpty()) {
+                if (!myInputs.isEmpty() && !myMesh.isEmpty()) {
                     currentRecipe = getRecipeForInputs(myInputs);
-                    myFriction = config.baseResistance +currentRecipe.additionalResistance;
+                    if (currentRecipe != null) {
+                        myFriction = config.baseResistance + currentRecipe.additionalResistance;
+                        CompoundTag timeRequiredTag = new CompoundTag();
+                        timeRequiredTag.putDouble("timeRequired", currentRecipe.timeRequired);
+                        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, timeRequiredTag));
+                    }
+                }
+            }
+        } else {
+            if (!myInputs.isEmpty()) {
+                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
+                if (currentProgress > client_syncedCurrentRecipeTime) {
+                    currentProgress = 0;
+                    myInputs.shrink(1);
+                }
+
+                if (myInputs.getItem() instanceof BlockItem b) {
+                    BlockState blockState = b.getBlock().defaultBlockState();
+                    double dps = Math.abs(Static.rad_to_degree(myMechanicalBlock.internalVelocity));
+                    int o = 100;
+                    int n = (int) Math.min(7, dps / o);
+                    if (level.random.nextFloat()*o < (int) dps % o) n += 1;
+                    for (int i = 0; i < n; i++) { // Spawn multiple particles for better effect
+                        double x = getBlockPos().getX() + 0.5 + (Math.random() - 0.5)*0.5;
+                        double y = getBlockPos().getY() + 0.5;
+                        double z = getBlockPos().getZ() + 0.5 + (Math.random() - 0.5)*0.5;
+
+                        level.addParticle(
+                                new DustParticleOptions(Vec3.fromRGB24(b.getBlock().defaultMapColor().col).toVector3f() , 0.4f),
+                                x, y, z,
+                                0.0, 0.0, 0.0 // Velocity: this shit does not work
+                        );
+                    }
                 }
             }
         }
