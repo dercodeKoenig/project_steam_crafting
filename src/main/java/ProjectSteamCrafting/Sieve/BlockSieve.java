@@ -66,12 +66,13 @@ public class BlockSieve extends Block implements EntityBlock {
         return InteractionResult.PASS;
     }
     @Override
-    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @javax.annotation.Nullable BlockEntity blockEntity, ItemStack tool) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
         if(blockEntity instanceof EntitySieve s){
             s.removeMyMesh();
             s.removeHopperUpgrade();
         }
-        super.playerDestroy(level,player,pos,state,blockEntity,tool);
+        super.onRemove(state, level, pos, newState, isMoving);
     }
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
