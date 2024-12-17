@@ -43,7 +43,10 @@ public class BlockSieve extends Block implements EntityBlock {
         this.registerDefaultState(state);
     }
     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-        return Shapes.create((double)0F, (double)0F, (double)0F, (double)1F, (double)0.75F, (double)1F);
+        if (state.getValue(HOPPER_UPGRADE))
+            return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 1F, (double) 1F);
+        else
+            return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 0.75F, (double) 1F);
     }
 
     @Override
