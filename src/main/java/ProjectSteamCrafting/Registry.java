@@ -1,6 +1,7 @@
 package ProjectSteamCrafting;
 
-import ProjectSteamCrafting.Items.Mesh.StringMesh;
+import ProjectSteamCrafting.Sieve.Items.ItemSieveUpgrade;
+import ProjectSteamCrafting.Sieve.Items.Mesh.StringMesh;
 import ProjectSteamCrafting.Sieve.BlockSieve;
 import ProjectSteamCrafting.Sieve.EntitySieve;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,6 +29,11 @@ public class Registry {
     public static final Supplier<BlockEntityType<EntitySieve>> ENTITY_SIEVE = BLOCK_ENTITIES.register(
             "entity_sieve",
             () -> BlockEntityType.Builder.of(EntitySieve::new, SIEVE.get()).build(null)
+    );
+
+    public static final Supplier<Item> SIEVE_HOPPER_UPGRADE = ITEMS.register(
+            "sieve_hopper_upgrade",
+            () -> new ItemSieveUpgrade()
     );
 
 public static final Supplier<Item> STRING_MESH = ITEMS.register(

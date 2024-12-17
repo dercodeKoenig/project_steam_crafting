@@ -1,4 +1,4 @@
-package ProjectSteamCrafting.Items.Mesh;
+package ProjectSteamCrafting.Sieve.Items.Mesh;
 
 import ProjectSteamCrafting.Sieve.IMesh;
 import net.minecraft.world.item.Item;

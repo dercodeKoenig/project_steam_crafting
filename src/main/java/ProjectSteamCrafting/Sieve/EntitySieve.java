@@ -4,6 +4,7 @@ import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
 import ARLib.utils.ItemUtils;
 import ProjectSteam.Static;
+import ProjectSteamCrafting.Sieve.Items.ItemSieveUpgrade;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import net.minecraft.client.Minecraft;
@@ -42,26 +43,34 @@ import java.util.List;
 import java.util.UUID;
 
 import static ProjectSteamCrafting.Registry.ENTITY_SIEVE;
+import static ProjectSteamCrafting.Registry.SIEVE_HOPPER_UPGRADE;
 
 public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
     static SieveConfig config = SieveConfigLoader.loadConfig();
 
     VertexBuffer myInputRendererBuffer;
-    ItemStack lastInputStackForRender= ItemStack.EMPTY;
+    ItemStack lastInputStackForRender = ItemStack.EMPTY;
     ResourceLocation inputStackTexture = ResourceLocation.withDefaultNamespace("textures/block/air");
+
+    VertexBuffer myHopperInputRendererBuffer;
+    ItemStack lastHopperInputStackForRender = ItemStack.EMPTY;
+    ResourceLocation hopperStackTexture = ResourceLocation.withDefaultNamespace("textures/block/air");
+
 
     ItemStack myMesh = ItemStack.EMPTY;
     ItemStack myInputs = ItemStack.EMPTY;
+    ItemStack myHopperInputs = ItemStack.EMPTY;
 
     SieveConfig.MachineRecipe currentRecipe = null;
     double currentProgress;
     double client_syncedCurrentRecipeTime;
 
-     double click_force = config.clickForce;
-     double k = config.k;
-     double max_speed = 20;
+    double click_force = config.clickForce;
+    double k = config.k;
+    double max_speed = 20;
     int maxStackSizeForSieve = config.inventorySize;
+    int maxStackSizeForSieveHopper = config.inventorySizeHopper;
 
     int ticksRemainingForForce = 0;
     double myFriction = config.baseResistance;
@@ -111,19 +120,20 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             myOnloadTag.putUUID("ClientSieveOnload", Minecraft.getInstance().player.getUUID());
             PacketDistributor.sendToServer(PacketBlockEntity.getBlockEntityPacket(this, myOnloadTag));
         }
-        if(FMLEnvironment.dist == Dist.CLIENT){
+        if (FMLEnvironment.dist == Dist.CLIENT) {
             RenderSystem.recordRenderCall(() -> {
                 myInputRendererBuffer = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+                myHopperInputRendererBuffer= new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
             });
         }
     }
 
     @Override
     public void setRemoved() {
-        removeMyMesh();
-        if(FMLEnvironment.dist == Dist.CLIENT){
+        if (FMLEnvironment.dist == Dist.CLIENT) {
             RenderSystem.recordRenderCall(() -> {
                 myInputRendererBuffer.close();
+                myHopperInputRendererBuffer.close();
             });
         }
         super.setRemoved();
@@ -141,16 +151,25 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             myMesh = ItemStack.parse(level.registryAccess(), tag.getCompound("mesh")).get();
         }
 
+        if (tag.contains("hasHopperInput")) {
+            if (!tag.getBoolean("hasHopperInput")) {
+                myHopperInputs = ItemStack.EMPTY;
+            }
+        }
+        if (tag.contains("hopperInputs")) {
+            myHopperInputs = ItemStack.parse(level.registryAccess(), tag.getCompound("hopperInputs")).get();
+        }
+
         if (tag.contains("hasInput")) {
             if (!tag.getBoolean("hasInput")) {
                 myInputs = ItemStack.EMPTY;
             }
         }
         if (tag.contains("inputs")) {
-            ItemStack oldStack =myInputs.copy();
+            ItemStack oldStack = myInputs.copy();
             myInputs = ItemStack.parse(level.registryAccess(), tag.getCompound("inputs")).get();
 
-            if(oldStack.getItem().equals(myInputs.getItem()) && myInputs.getCount() +1 == oldStack.getCount()) {
+            if (oldStack.getItem().equals(myInputs.getItem()) && myInputs.getCount() + 1 == oldStack.getCount()) {
                 // this was an update that the recipe was processed so myStack decreased by one, update the progress
                 currentProgress = 0;
             }
@@ -187,6 +206,10 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             CompoundTag inputsTag = tag.getCompound("inputs");
             myInputs = ItemStack.parse(registries, inputsTag).get();
         }
+        if (tag.contains("hopperInputs")) {
+            CompoundTag hopperInputsTag = tag.getCompound("hopperInputs");
+            myHopperInputs = ItemStack.parse(registries, hopperInputsTag).get();
+        }
     }
 
     @Override
@@ -200,6 +223,10 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (!myInputs.isEmpty()) {
             Tag inputsTag = myInputs.save(registries);
             tag.put("inputs", inputsTag);
+        }
+        if (!myHopperInputs.isEmpty()) {
+            Tag hopperInputsTag = myHopperInputs.save(registries);
+            tag.put("hopperInputs", hopperInputsTag);
         }
     }
 
@@ -237,6 +264,12 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             meshInfo.put("inputs", inputsTag);
         }
 
+        meshInfo.putBoolean("hasHopperInput", !myHopperInputs.isEmpty());
+        if (!myHopperInputs.isEmpty()) {
+            Tag inputsTag = myHopperInputs.save(level.registryAccess());
+            meshInfo.put("hopperInputs", inputsTag);
+        }
+
         return meshInfo;
     }
 
@@ -250,12 +283,12 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     void removeMyMesh() {
         if (!myMesh.isEmpty()) {
-            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), myMesh);
+            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), myMesh);
             i.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i);
             myMesh = ItemStack.EMPTY;
 
-            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY()+1, getBlockPos().getZ(), myInputs);
+            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), myInputs);
             i2.setDeltaMovement(0, 0.2, 0);
             level.addFreshEntity(i2);
             myInputs = ItemStack.EMPTY;
@@ -264,9 +297,26 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         }
     }
 
-    SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs){
+    void removeHopperUpgrade() {
+        if (getBlockState().getValue(BlockSieve.HOPPER_UPGRADE)) {
+            ItemEntity i = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), new ItemStack(SIEVE_HOPPER_UPGRADE.get(), 1));
+            i.setDeltaMovement(0, 0.2, 0);
+            level.addFreshEntity(i);
+            if(level.getBlockState(getBlockPos()).getBlock() instanceof BlockSieve)
+                level.setBlock(getBlockPos(), getBlockState().setValue(BlockSieve.HOPPER_UPGRADE, false), 3);
+
+            ItemEntity i2 = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), myHopperInputs);
+            i2.setDeltaMovement(0, 0.2, 0);
+            level.addFreshEntity(i2);
+            myHopperInputs = ItemStack.EMPTY;
+
+            broadcastChangeOfInventoryAndSetChanged();
+        }
+    }
+
+    SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs) {
         for (SieveConfig.MachineRecipe i : config.recipes) {
-            if( ItemUtils.matches(i.requiredMesh, myMesh)) {
+            if (ItemUtils.matches(i.requiredMesh, myMesh)) {
                 SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
                 if (ItemUtils.matches(input.id, inputs)) {
                     return i;
@@ -275,26 +325,27 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         }
         return null;
     }
-    void completeRecipe(){
-        if(currentRecipe != null){
-            for(SieveConfig.MachineRecipe.Item item:currentRecipe.outputItems){
+
+    void completeRecipe() {
+        if (currentRecipe != null) {
+            for (SieveConfig.MachineRecipe.Item item : currentRecipe.outputItems) {
                 int actual_num = 0;
-                for(int i = 0; i < item.amount; ++i) {
-                    if (item.p >= 1.0F || Math.random() < (double)item.p) {
+                for (int i = 0; i < item.amount; ++i) {
+                    if (item.p >= 1.0F || Math.random() < (double) item.p) {
                         ++actual_num;
                     }
                 }
                 ItemStack output = ItemUtils.getItemStackFromId(item.id, actual_num);
-                for(Direction i : Direction.values()){
-                    IItemHandler inv = level.getCapability(Capabilities.ItemHandler.BLOCK,getBlockPos().relative(i),i.getOpposite());
-                    if(inv instanceof IItemHandler) {
+                for (Direction i : Direction.values()) {
+                    IItemHandler inv = level.getCapability(Capabilities.ItemHandler.BLOCK, getBlockPos().relative(i), i.getOpposite());
+                    if (inv instanceof IItemHandler) {
                         for (int j = 0; j < inv.getSlots(); j++) {
                             output = inv.insertItem(j, output, false);
                             if (output.isEmpty()) break;
                         }
                     }
                 }
-                if(!output.isEmpty()) {
+                if (!output.isEmpty()) {
                     ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), output);
                     level.addFreshEntity(ie);
                 }
@@ -306,18 +357,17 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         myFriction = config.baseResistance;
     }
 
-    boolean tryAddElementToInventory(ItemStack stack){
-        if(stack.isEmpty())return false;
-
-        if(myInputs.isEmpty()) {
-         if(getRecipeForInputs(stack)!=null){
-             myInputs = stack.copyWithCount(1);
-             stack.shrink(1);
-             broadcastChangeOfInventoryAndSetChanged();
-             return true;
-         }
-        }else{
-            if(ItemStack.isSameItemSameComponents(stack, myInputs)){
+    boolean tryAddElementToSieveInventory(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (myInputs.isEmpty()) {
+            if (getRecipeForInputs(stack) != null) {
+                myInputs = stack.copyWithCount(1);
+                stack.shrink(1);
+                broadcastChangeOfInventoryAndSetChanged();
+                return true;
+            }
+        } else {
+            if (ItemStack.isSameItemSameComponents(stack, myInputs)) {
                 int maxStackSize = Math.min(myInputs.getMaxStackSize(), maxStackSizeForSieve);
                 int toAdd = Math.min(maxStackSize - myInputs.getCount(), 1);
                 myInputs.grow(toAdd);
@@ -326,7 +376,30 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 return true;
             }
         }
-        return  false;
+        return false;
+    }
+
+    boolean tryAddElementToHopperInventory(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!getBlockState().getValue(BlockSieve.HOPPER_UPGRADE)) return false;
+        if (myHopperInputs.isEmpty()) {
+            if (getRecipeForInputs(stack) != null) {
+                myHopperInputs = stack.copyWithCount(1);
+                stack.shrink(1);
+                broadcastChangeOfInventoryAndSetChanged();
+                return true;
+            }
+        } else {
+            if (ItemStack.isSameItemSameComponents(stack, myHopperInputs)) {
+                int maxStackSize = Math.min(myHopperInputs.getMaxStackSize(), maxStackSizeForSieveHopper);
+                int toAdd = Math.min(maxStackSize - myHopperInputs.getCount(), 1);
+                myHopperInputs.grow(toAdd);
+                stack.shrink(toAdd);
+                broadcastChangeOfInventoryAndSetChanged();
+                return true;
+            }
+        }
+        return false;
     }
 
     public InteractionResult use(Player player) {
@@ -338,38 +411,35 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                 broadcastChangeOfInventoryAndSetChanged();
                 return InteractionResult.SUCCESS;
             }
-            if(tryAddElementToInventory(player.getMainHandItem()))return InteractionResult.SUCCESS;
-            if(tryAddElementToInventory(player.getOffhandItem()))return InteractionResult.SUCCESS;
-
-
-            if(player.getMainHandItem().isEmpty()){
-                if (ticksRemainingForForce < 5 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
-                    ticksRemainingForForce += 5;
+            if (player.getMainHandItem().getItem() instanceof ItemSieveUpgrade && !getBlockState().getValue(BlockSieve.HOPPER_UPGRADE)) {
+                level.setBlock(getBlockPos(), getBlockState().setValue(BlockSieve.HOPPER_UPGRADE, true), 3);
+                player.getMainHandItem().shrink(1);
+            } else if (tryAddElementToHopperInventory(player.getMainHandItem())) return InteractionResult.SUCCESS;
+            else if (tryAddElementToHopperInventory(player.getOffhandItem())) return InteractionResult.SUCCESS;
+            else if (tryAddElementToSieveInventory(player.getMainHandItem())) return InteractionResult.SUCCESS;
+            else if (tryAddElementToSieveInventory(player.getOffhandItem())) return InteractionResult.SUCCESS;
+            else {
+                if (tryAddManualWork()) {
                     player.causeFoodExhaustion(0.5f);
-                    return InteractionResult.SUCCESS_NO_ITEM_USED;
                 }
+                return InteractionResult.SUCCESS_NO_ITEM_USED;
             }
         } else {
-            removeMyMesh();
-            broadcastChangeOfInventoryAndSetChanged();
-            return InteractionResult.SUCCESS;
+            if (player.getMainHandItem().isEmpty()) {
+                removeMyMesh();
+                broadcastChangeOfInventoryAndSetChanged();
+                return InteractionResult.SUCCESS_NO_ITEM_USED;
+            }
         }
         return InteractionResult.PASS;
     }
 
-    void getItemsOnTop(){
-        double minX = getBlockPos().getX();
-        double minY = getBlockPos().getY()+0.5;
-        double minZ = getBlockPos().getZ();
-        double maxX = minX + 1;
-        double maxY = minY + 1.5;
-        double maxZ = minZ + 1;
-
-
-        for(ItemEntity i : level.getEntitiesOfClass(ItemEntity.class, new AABB(minX, minY, minZ, maxX, maxY, maxZ))){
-            tryAddElementToInventory(i.getItem());
-            i.setExtendedLifetime();
+    public boolean tryAddManualWork() {
+        if (ticksRemainingForForce < 5 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
+            ticksRemainingForForce += 5;
+            return true;
         }
+        return false;
     }
 
     public void tick() {
@@ -385,15 +455,23 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             }
         }
         if (!level.isClientSide) {
-            if(myInputs.getCount() < maxStackSizeForSieve && !myMesh.isEmpty() && level.getGameTime() % 51 == 0){
-                getItemsOnTop();
+            if (getBlockState().getValue(BlockSieve.HOPPER_UPGRADE)) {
+                IItemHandler inventoryAbove = level.getCapability(Capabilities.ItemHandler.BLOCK, getBlockPos().relative(Direction.UP), Direction.DOWN);
+                if (inventoryAbove instanceof IItemHandler) {
+                    for (int j = 0; j < inventoryAbove.getSlots(); j++) {
+                        ItemStack stack = inventoryAbove.getStackInSlot(j);
+                        tryAddElementToHopperInventory(stack);
+                    }
+                }
+            }
+            if (!myHopperInputs.isEmpty()) {
+                tryAddElementToSieveInventory(myHopperInputs);
             }
             if (currentRecipe != null) {
                 currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
                 if (currentProgress >= currentRecipe.timeRequired) {
                     completeRecipe();
                     currentProgress = 0;
-                    getItemsOnTop();
                 }
             } else {
                 if (!myInputs.isEmpty() && !myMesh.isEmpty()) {
@@ -418,20 +496,20 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
                     double dps = Math.abs(Static.rad_to_degree(myMechanicalBlock.internalVelocity));
                     int o = 100;
                     int n = (int) Math.min(7, dps / o);
-                    if (level.random.nextFloat()*o < (int) dps % o) n += 1;
+                    if (level.random.nextFloat() * o < (int) dps % o) n += 1;
                     for (int i = 0; i < n; i++) { // Spawn multiple particles for better effect
-                        double x = getBlockPos().getX() + 0.5 + (Math.random() - 0.5)*0.5;
+                        double x = getBlockPos().getX() + 0.5 + (Math.random() - 0.5) * 0.5;
                         double y = getBlockPos().getY() + 0.5;
-                        double z = getBlockPos().getZ() + 0.5 + (Math.random() - 0.5)*0.5;
+                        double z = getBlockPos().getZ() + 0.5 + (Math.random() - 0.5) * 0.5;
 
                         level.addParticle(
-                                new DustParticleOptions(Vec3.fromRGB24(b.getBlock().defaultMapColor().col).toVector3f() , 0.4f),
+                                new DustParticleOptions(Vec3.fromRGB24(b.getBlock().defaultMapColor().col).toVector3f(), 0.4f),
                                 x, y, z,
                                 0.0, 0.0, 0.0 // Velocity: this shit does not work
                         );
                     }
                 }
-            }else currentProgress =0;
+            } else currentProgress = 0;
         }
     }
 

@@ -2,6 +2,7 @@ package ProjectSteamCrafting.Sieve;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -30,10 +32,14 @@ public class BlockSieve extends Block implements EntityBlock {
 
     public static EnumProperty<Direction> FACING = EnumProperty.create("facing", Direction.class);
 
+    public static BooleanProperty HOPPER_UPGRADE = BooleanProperty.create("has_hopper");
+
+
     public BlockSieve() {
         super(Properties.of().noOcclusion().strength(1.0f));
         BlockState state = this.stateDefinition.any();
         state = state.setValue(FACING, Direction.SOUTH);
+        state = state.setValue(HOPPER_UPGRADE, false);
         this.registerDefaultState(state);
     }
     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
@@ -43,6 +49,7 @@ public class BlockSieve extends Block implements EntityBlock {
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING);
+        builder.add(HOPPER_UPGRADE);
         super.createBlockStateDefinition(builder);
     }
 
@@ -57,6 +64,14 @@ public class BlockSieve extends Block implements EntityBlock {
         if(b instanceof EntitySieve h)
             return h.use(player);
         return InteractionResult.PASS;
+    }
+    @Override
+    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @javax.annotation.Nullable BlockEntity blockEntity, ItemStack tool) {
+        if(blockEntity instanceof EntitySieve s){
+            s.removeMyMesh();
+            s.removeHopperUpgrade();
+        }
+        super.playerDestroy(level,player,pos,state,blockEntity,tool);
     }
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {

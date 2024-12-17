@@ -70,7 +70,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
 
         byteBuffer = new ByteBufferBuilder(1024);
         b = new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
-        for (Face i : model.groupObjects.get("sieve.002").faces) {
+        for (Face i : model.groupObjects.get("sieve").faces) {
             i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
         }
         mesh = b.build();
@@ -106,6 +106,24 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
             MeshData mesh = b.build();
             tile.myInputRendererBuffer.bind();
             tile.myInputRendererBuffer.upload(mesh);
+            byteBuffer.close();
+        }
+
+        if(tile.myHopperInputs.getItem() instanceof BlockItem bi) {
+            Block block = bi.getBlock();
+            BlockRenderDispatcher blockRenderer = Minecraft.getInstance().getBlockRenderer();
+            TextureAtlasSprite blockTexture = blockRenderer.getBlockModel(block.defaultBlockState()).getParticleIcon(ModelData.EMPTY);
+            tile.hopperStackTexture = blockTexture.atlasLocation();
+            model.scaleUV("hopper_plane", blockTexture.getU0(), blockTexture.getV0(), blockTexture.getU1(), blockTexture.getV1());
+            ByteBufferBuilder byteBuffer = new ByteBufferBuilder(1024);
+            BufferBuilder b= new BufferBuilder(byteBuffer, VertexFormat.Mode.TRIANGLES, POSITION_COLOR_TEXTURE_NORMAL_LIGHT);
+            for (Face i : model.groupObjects.get("hopper_plane").faces) {
+                i.addFaceForRender(new PoseStack(), b, 0, 0, 0xffffffff);
+            }
+            model.scaleUV("hopper_plane",0,0,1,1);
+            MeshData mesh = b.build();
+            tile.myHopperInputRendererBuffer.bind();
+            tile.myHopperInputRendererBuffer.upload(mesh);
             byteBuffer.close();
         }
     }
@@ -231,6 +249,26 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
                     shader.apply();
                     tile.myInputRendererBuffer.bind();
                     tile.myInputRendererBuffer.draw();
+                }
+
+                if (tile.myHopperInputs.getItem() instanceof BlockItem bi) {
+
+                    if (!tile.lastHopperInputStackForRender.getItem().equals(tile.myHopperInputs.getItem())) {
+                        updateRenderData(tile);
+                        tile.lastHopperInputStackForRender = tile.myHopperInputs.copy();
+                    }
+                    RenderSystem.setShaderTexture(0, tile.hopperStackTexture);
+                    float baseOffset = 0.37f;
+                    float maxTranslateUp = 0.49f-baseOffset;
+                    float translateUp = (float) (((float)tile.myHopperInputs.getCount()) / tile.maxStackSizeForSieveHopper * maxTranslateUp+baseOffset);
+                    m2 = new Matrix4f(m1);
+                    m2.translate(0, translateUp, 0);
+                    shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                    shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
+                    shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');
+                    shader.apply();
+                    tile.myHopperInputRendererBuffer.bind();
+                    tile.myHopperInputRendererBuffer.draw();
                 }
             }
 

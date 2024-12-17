@@ -52,6 +52,7 @@ public class ProjectSteamCrafting {
         if (e.getTab().equals(PROJECTSTEAM_CREATIVETAB.get())) {
             e.accept(SIEVE.get());
             e.accept(STRING_MESH.get());
+            e.accept(SIEVE_HOPPER_UPGRADE.get());
         }
     }
 
