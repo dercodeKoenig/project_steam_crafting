@@ -180,6 +180,9 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (tag.contains("syncMaxStackSize")) {
             maxStackSizeForSieve = tag.getInt("syncMaxStackSize");
         }
+        if (tag.contains("syncMaxHopperStackSize")) {
+            maxStackSizeForSieveHopper = tag.getInt("syncMaxHopperStackSize");
+        }
     }
 
     @Override
@@ -190,6 +193,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
             ServerPlayer pfrom = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(from);
             CompoundTag info = getMeshUpdateTag();
             info.putInt("syncMaxStackSize", maxStackSizeForSieve);
+            info.putInt("syncMaxHopperStackSize", maxStackSizeForSieveHopper);
             PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, info));
         }
     }
