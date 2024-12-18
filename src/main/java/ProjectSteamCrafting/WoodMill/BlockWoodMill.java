@@ -3,7 +3,9 @@ package ProjectSteamCrafting.WoodMill;
 import ProjectSteamCrafting.Sieve.EntitySieve;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -15,6 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -65,6 +68,14 @@ public class BlockWoodMill extends Block implements EntityBlock {
         return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 1F, (double) 1F);
     }
     */
+
+    @Override
+    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+        BlockEntity b = level.getBlockEntity(pos);
+        if(b instanceof EntityWoodMill h)
+            return h.use(player);
+        return InteractionResult.PASS;
+    }
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
         return EntityWoodMill::tick;

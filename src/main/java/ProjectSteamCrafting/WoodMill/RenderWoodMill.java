@@ -9,6 +9,7 @@ import ProjectSteam.Static;
 import ProjectSteamCrafting.Sieve.BlockSieve;
 import ProjectSteamCrafting.Sieve.EntitySieve;
 import ProjectSteamCrafting.Sieve.IMesh;
+import com.ibm.icu.impl.ICUResourceBundleReader;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.Minecraft;
@@ -94,20 +95,24 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
             m1 = m1.mul(stack.last().pose());
             m1 = m1.translate(0.5f, 0.5f, 0.5f);
 
+            stack.translate(0.5f,0.5f,0.5f);
             if(facing == Direction.WEST){
                 m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 0f));
+                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 0f));
             }
             if(facing == Direction.EAST){
                 m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 180f));
-
+                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 180f));
             }
             if(facing == Direction.SOUTH){
                 m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 90f));
+                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 90f));
             }
             if(facing == Direction.NORTH){
                 m1 = m1.rotate(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 270f));
+                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0f,1.0f, 0, 270f));
             }
-
+            stack.translate(-0.5f,-0.5f,-0.5f);
 
 
             LIGHTMAP.setupRenderState();
@@ -153,6 +158,27 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
             shader.apply();
             vertexBuffer_saw.bind();
             vertexBuffer_saw.draw();
+
+
+
+            if(tile.currentInput.getItem() instanceof BlockItem bi){
+                BlockState s = bi.getBlock().defaultBlockState();
+
+
+                stack.scale(0.3f,0.3f,0.3f);
+                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0,0,1f,90f));
+                stack.translate(0.9f,1.4f,1.2f);
+
+                stack.translate(0f,-tile.currentProgress / tile.timeRequired * 1.6f/0.3f,0f);
+
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
+                stack.translate(0,-1f,0f);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
+                stack.translate(0,-1f,0f);
+                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
+            }
+
+
 
             shader.clear();
             VertexBuffer.unbind();

@@ -48,10 +48,16 @@ import static ProjectSteamCrafting.Registry.*;
 
 public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
+    ItemStack currentInput = ItemStack.EMPTY;
 
-    double myFriction = 10;
+    WoodMillConfig config = WoodMillConfigLoader.loadConfig();
+
+    double myFriction = config.baseResistance;
     double myInertia = 1;
-    double maxStress = 300;
+    double maxStress = 500;
+
+    double timeRequired = 20;
+    double currentProgress = 0;
 
     public AbstractMechanicalBlock myMechanicalBlock = new AbstractMechanicalBlock(0, this) {
         @Override
@@ -114,6 +120,15 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
     @Override
     public void readClient(CompoundTag tag) {
         myMechanicalBlock.mechanicalReadClient(tag);
+        if(tag.contains("hasInput")){
+            if(!tag.getBoolean("hasInput")){
+                currentInput = ItemStack.EMPTY;
+            }
+        }
+        if(tag.contains("currentInput")){
+            currentInput = ItemStack.parse(level.registryAccess(),tag.getCompound("currentInput")).get();
+            currentProgress = 0;
+        }
     }
 
     @Override
@@ -122,6 +137,8 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         if (tag.contains("ClientWoodMillOnload")) {
             UUID from = tag.getUUID("ClientWoodMillOnload");
             ServerPlayer pfrom = ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayer(from);
+            CompoundTag info = getClientSyncUpdateTag();
+            PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, info));
         }
     }
 
@@ -157,39 +174,43 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         super(ENTITY_WOODMILL.get(), pos, blockState);
     }
 
+    CompoundTag getClientSyncUpdateTag(){
+        CompoundTag info = new CompoundTag();
+        info.putBoolean("hasInput", !currentInput.isEmpty());
+        if(!currentInput.isEmpty()){
+            info.put("currentInput", currentInput.save(level.registryAccess()));
+        }
+        return info;
+    }
+
     void broadcastChangeOfInventoryAndSetChanged() {
         if (!level.isClientSide) {
-            //CompoundTag meshInfo = ;
-            //PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, meshInfo));
-            //setChanged();
+            CompoundTag info = getClientSyncUpdateTag();
+            PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, info));
+            setChanged();
         }
     }
 
-    /*
-    SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs) {
-        for (SieveConfig.MachineRecipe i : config.recipes) {
-            if (ItemUtils.matches(i.requiredMesh, myMesh)) {
-                SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
+
+    WoodMillConfig.MachineRecipe getRecipeForInputs(ItemStack inputs) {
+        for (WoodMillConfig.MachineRecipe i : config.recipes) {
+                WoodMillConfig.MachineRecipe.Item input = i.inputItem;
                 if (ItemUtils.matches(input.id, inputs)) {
                     return i;
                 }
-            }
         }
         return null;
     }
-     */
 
-    /*
+
+
     void completeRecipe() {
-        if (currentRecipe != null) {
-            for (SieveConfig.MachineRecipe.Item item : currentRecipe.outputItems) {
-                int actual_num = 0;
-                for (int i = 0; i < item.amount; ++i) {
-                    if (item.p >= 1.0F || Math.random() < (double) item.p) {
-                        ++actual_num;
-                    }
-                }
-                ItemStack output = ItemUtils.getItemStackFromId(item.id, actual_num);
+        if (currentInput != ItemStack.EMPTY) {
+            for (WoodMillConfig.MachineRecipe recipe : config.recipes) {
+                if (ItemUtils.matches(recipe.inputItem.id, currentInput)) {
+                    ItemStack output = ItemUtils.getItemStackFromId(recipe.outputItem.id, recipe.outputItem.amount);
+
+                /*
                 for (Direction i : Direction.values()) {
                     if(i==Direction.UP)continue;
                     IItemHandler inv = level.getCapability(Capabilities.ItemHandler.BLOCK, getBlockPos().relative(i), i.getOpposite());
@@ -200,75 +221,64 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
                         }
                     }
                 }
-                if (!output.isEmpty()) {
-                    ItemEntity ie = new ItemEntity(level, getBlockPos().getX(), getBlockPos().getY() + 1, getBlockPos().getZ(), output);
-                    level.addFreshEntity(ie);
+                 */
+                    if (!output.isEmpty()) {
+                        BlockPos op =  getBlockPos().relative(getBlockState().getValue(BlockWoodMill.FACING).getOpposite()).relative(Direction.UP);
+                        ItemEntity ie = new ItemEntity(level,op.getX(),op.getY(),op.getZ(), output);
+                        level.addFreshEntity(ie);
+                    }
+                    currentInput = ItemStack.EMPTY;
+                    broadcastChangeOfInventoryAndSetChanged();
+                    break;
                 }
-                myInputs.shrink(1);
-                broadcastChangeOfInventoryAndSetChanged();
             }
-            currentRecipe = null;
         }
         myFriction = config.baseResistance;
     }
-     */
-/*
-    boolean tryAddElementToSieveInventory(ItemStack stack) {
+
+    boolean trySetCurrentInput(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        if (myInputs.isEmpty()) {
-            if (getRecipeForInputs(stack) != null) {
-                myInputs = stack.copyWithCount(1);
+        if (!currentInput.isEmpty()) return false;
+        if (getRecipeForInputs(stack) != null) {
+            if(!level.isClientSide) {
+                currentInput = stack.copyWithCount(1);
                 stack.shrink(1);
                 broadcastChangeOfInventoryAndSetChanged();
-                return true;
             }
-        } else {
-            if (ItemStack.isSameItemSameComponents(stack, myInputs)) {
-                int maxStackSize = Math.min(myInputs.getMaxStackSize(), maxStackSizeForSieve);
-                int toAdd = Math.min(maxStackSize - myInputs.getCount(), 1);
-                myInputs.grow(toAdd);
-                stack.shrink(toAdd);
-                broadcastChangeOfInventoryAndSetChanged();
-                return true;
-            }
+            return true;
         }
         return false;
     }
-*/
 
+
+    public InteractionResult use(Player p) {
+        if (!p.isShiftKeyDown()) {
+            if (trySetCurrentInput(p.getMainHandItem()))
+                return InteractionResult.SUCCESS;
+            else
+                return InteractionResult.SUCCESS_NO_ITEM_USED;
+        }
+        return InteractionResult.PASS;
+    }
 
     public void tick() {
         myMechanicalBlock.mechanicalTick();
 
         if (!level.isClientSide) {
-           /*
-            if (currentRecipe != null) {
-                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
-                if (currentProgress >= currentRecipe.timeRequired) {
+            if (!currentInput.isEmpty()) {
+                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
+                if (currentProgress >= timeRequired) {
                     completeRecipe();
                     currentProgress = 0;
                 }
-            } else {
-                if (!myInputs.isEmpty() && !myMesh.isEmpty()) {
-                    currentRecipe = getRecipeForInputs(myInputs);
-                    if (currentRecipe != null) {
-                        myFriction = config.baseResistance + currentRecipe.additionalResistance;
-                        CompoundTag timeRequiredTag = new CompoundTag();
-                        timeRequiredTag.putDouble("timeRequired", currentRecipe.timeRequired);
-                        PacketDistributor.sendToPlayersTrackingChunk((ServerLevel) level, new ChunkPos(getBlockPos()), PacketBlockEntity.getBlockEntityPacket(this, timeRequiredTag));
-                    }
-                }
             }
-            */
         } else {
-            /*
-            if (!myInputs.isEmpty()) {
-                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
-                if (currentProgress > client_syncedCurrentRecipeTime) {
+            if (!currentInput.isEmpty()) {
+                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
+                if (currentProgress >= timeRequired) {
 
                 }
-            } else currentProgress = 0;
-             */
+            }
         }
     }
 
