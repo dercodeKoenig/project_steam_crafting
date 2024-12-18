@@ -42,6 +42,8 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static ProjectSteamCrafting.Registry.*;
@@ -56,7 +58,7 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
     double myInertia = 1;
     double maxStress = 500;
 
-    double timeRequired = 20;
+    double timeRequired = 50;
     double currentProgress = 0;
 
     public AbstractMechanicalBlock myMechanicalBlock = new AbstractMechanicalBlock(0, this) {
@@ -160,7 +162,7 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         if (myState.getBlock() instanceof BlockWoodMill) {
             if (side == Direction.DOWN) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
-                if (t instanceof EntityCrankShaftBase cs) {
+                if (t instanceof EntityCrankShaftBase cs&& cs.myType == CrankShaftType.LARGE) {
                     if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockWoodMill.FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
@@ -239,10 +241,12 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
     boolean trySetCurrentInput(ItemStack stack) {
         if (stack.isEmpty()) return false;
         if (!currentInput.isEmpty()) return false;
-        if (getRecipeForInputs(stack) != null) {
+        WoodMillConfig.MachineRecipe r = getRecipeForInputs(stack);
+        if (r != null) {
             if(!level.isClientSide) {
                 currentInput = stack.copyWithCount(1);
                 stack.shrink(1);
+                myFriction = config.baseResistance + r.additionalResistance;
                 broadcastChangeOfInventoryAndSetChanged();
             }
             return true;
@@ -284,5 +288,15 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
 
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T t) {
         ((EntityWoodMill) t).tick();
+    }
+
+
+    static List<CrankShaftType> allowedCrankshaftTypes = new ArrayList();
+    static{
+        allowedCrankshaftTypes.add(CrankShaftType.LARGE);
+    }
+    @Override
+    public List<CrankShaftType> getConnectableCrankshafts() {
+        return allowedCrankshaftTypes;
     }
 }

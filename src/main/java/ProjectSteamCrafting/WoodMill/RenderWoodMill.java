@@ -124,9 +124,9 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
             RenderSystem.setShaderTexture(0, tex);
 
             Matrix4f m2 = new Matrix4f(m1);
-            float crankshaftR = 0.07f;
+            float crankshaftR = 0.112f;
             double targetX = 0;
-            double armLength = 0.52;
+            double armLength = 0.58;
             float XRotationMultiplier =
                     (facing.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1 : -1)
                     *(facing.getAxis() == Direction.Axis.X ? 1 : -1);

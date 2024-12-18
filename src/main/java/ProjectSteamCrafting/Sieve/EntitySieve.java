@@ -39,6 +39,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -240,7 +241,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (myState.getBlock() instanceof BlockSieve) {
             if (side == myState.getValue(BlockSieve.FACING)) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
-                if (t instanceof ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase cs) {
+                if (t instanceof ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase cs && cs.myType == CrankShaftType.SMALL) {
                     if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockSieve.FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
@@ -520,5 +521,15 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
     public static <T extends BlockEntity> void tick(Level level, BlockPos blockPos, BlockState blockState, T t) {
         ((EntitySieve) t).tick();
+    }
+
+
+    static List<CrankShaftType> allowedCrankshaftTypes = new ArrayList();
+    static{
+        allowedCrankshaftTypes.add(CrankShaftType.SMALL);
+    }
+    @Override
+    public List<CrankShaftType> getConnectableCrankshafts() {
+        return allowedCrankshaftTypes;
     }
 }
