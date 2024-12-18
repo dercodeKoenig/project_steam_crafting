@@ -54,7 +54,7 @@ public class BlockWoodMill extends Block implements EntityBlock {
 
         super.setPlacedBy(level, pos, state, placer, stack); // Call the super method for any additional behavior
     }
-
+/*
     public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         if(state.getValue(FACING).getAxis() == Direction.Axis.X) {
             return Shapes.create((double) -1F, (double) 0F, (double) 0F, (double) 2F, (double) 0.5F, (double) 1F);
@@ -64,6 +64,7 @@ public class BlockWoodMill extends Block implements EntityBlock {
         }
         return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 1F, (double) 1F);
     }
+    */
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
         return EntityWoodMill::tick;
