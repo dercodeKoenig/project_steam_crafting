@@ -4,6 +4,8 @@ import ProjectSteamCrafting.Sieve.Items.ItemSieveUpgrade;
 import ProjectSteamCrafting.Sieve.Items.Mesh.StringMesh;
 import ProjectSteamCrafting.Sieve.BlockSieve;
 import ProjectSteamCrafting.Sieve.EntitySieve;
+import ProjectSteamCrafting.WoodMill.BlockWoodMill;
+import ProjectSteamCrafting.WoodMill.EntityWoodMill;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -41,8 +43,19 @@ public static final Supplier<Item> STRING_MESH = ITEMS.register(
         () -> new StringMesh()
 );
 
+
+    public static final Supplier<Block> WOODMILL = BLOCKS.register(
+            "woodmill",
+            () -> new BlockWoodMill()
+    );
+    public static final Supplier<BlockEntityType<EntityWoodMill>> ENTITY_WOODMILL = BLOCK_ENTITIES.register(
+            "entity_woodmill",
+            () -> BlockEntityType.Builder.of(EntityWoodMill::new, WOODMILL.get()).build(null)
+    );
+
     static {
         registerBlockItem("sieve", SIEVE);
+        registerBlockItem("woodmill", WOODMILL);
     }
 
     public static void register(IEventBus modBus) {

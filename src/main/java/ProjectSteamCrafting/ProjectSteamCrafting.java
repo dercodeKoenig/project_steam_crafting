@@ -2,6 +2,7 @@ package ProjectSteamCrafting;
 
 
 import ProjectSteamCrafting.Sieve.RenderSieve;
+import ProjectSteamCrafting.WoodMill.RenderWoodMill;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -42,6 +43,7 @@ public class ProjectSteamCrafting {
 
     public void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ENTITY_SIEVE.get(), RenderSieve::new);
+        event.registerBlockEntityRenderer(ENTITY_WOODMILL.get(), RenderWoodMill::new);
 
     }
 
@@ -53,6 +55,9 @@ public class ProjectSteamCrafting {
             e.accept(SIEVE.get());
             e.accept(STRING_MESH.get());
             e.accept(SIEVE_HOPPER_UPGRADE.get());
+
+
+            e.accept(WOODMILL.get());
         }
     }
 

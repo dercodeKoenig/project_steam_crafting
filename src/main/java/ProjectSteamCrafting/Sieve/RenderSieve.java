@@ -135,9 +135,9 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
     @Override
     public void render(EntitySieve tile, float partialTick, PoseStack stack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         if(tile.isRemoved())return;
-        BlockState axleState = tile.getBlockState();
-        if (axleState.getBlock() instanceof BlockSieve) {
-            Direction facing = axleState.getValue(BlockSieve.FACING);
+        BlockState state = tile.getBlockState();
+        if (state.getBlock() instanceof BlockSieve) {
+            Direction facing = state.getValue(BlockSieve.FACING);
 
             Matrix4f m1 = new Matrix4f(RenderSystem.getModelViewMatrix());
             m1 = m1.mul(stack.last().pose());
