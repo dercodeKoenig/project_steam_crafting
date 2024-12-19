@@ -1,5 +1,7 @@
 package ProjectSteamCrafting.WoodMill;
 
+import ARLib.multiblockCore.BlockMultiblockMaster;
+import ARLib.multiblockCore.EntityMultiblockMaster;
 import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
 import ARLib.utils.ItemUtils;
@@ -32,8 +34,12 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.loading.FMLEnvironment;
@@ -43,12 +49,15 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+import static ProjectSteam.Registry.CASING;
+import static ProjectSteam.Registry.CASING_SLAB;
 import static ProjectSteamCrafting.Registry.*;
 
-public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
+public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
     ItemStack currentInput = ItemStack.EMPTY;
 
@@ -93,9 +102,38 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         return this;
     }
 
+    public static Object[][][] structure = {
+            {{'C'},{'c'}, {'C'}}
+    };
+    public static HashMap<Character, List<Block>> charMapping = new HashMap<>();
+
+    static {
+        List<Block> c = new ArrayList<>();
+        c.add(WOODMILL.get());
+        charMapping.put('c', c);
+
+        List<Block> C = new ArrayList<>();
+        C.add(CASING_SLAB.get());
+        charMapping.put('C', C);
+    }
+    @Override
+    public Object[][][] getStructure() {
+        return structure;
+    }
+
+    @Override
+    public HashMap<Character, List<Block>> getCharMapping() {
+        return charMapping;
+    }
+
     @Override
     public void onLoad() {
         super.onLoad();
+
+        structure = new Object[][][]{
+                {{'C'}, {'c'}, {'C'}}
+        };
+
         myMechanicalBlock.mechanicalOnload();
         if (level.isClientSide) {
             CompoundTag myOnloadTag = new CompoundTag();
@@ -131,6 +169,7 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
             currentInput = ItemStack.parse(level.registryAccess(),tag.getCompound("currentInput")).get();
             currentProgress = 0;
         }
+        super.readClient(tag);
     }
 
     @Override
@@ -142,28 +181,30 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
             CompoundTag info = getClientSyncUpdateTag();
             PacketDistributor.sendToPlayer(pfrom, PacketBlockEntity.getBlockEntityPacket(this, info));
         }
+        super.readServer(tag);
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         myMechanicalBlock.mechanicalLoadAdditional(tag, registries);
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         myMechanicalBlock.mechanicalSaveAdditional(tag, registries);
     }
 
     @Override
     public AbstractMechanicalBlock getMechanicalBlock(Direction side) {
+        if(!getBlockState().getValue(BlockMultiblockMaster.STATE_MULTIBLOCK_FORMED))return null;
         BlockState myState = getBlockState();
         if (myState.getBlock() instanceof BlockWoodMill) {
             if (side == Direction.DOWN) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
                 if (t instanceof EntityCrankShaftBase cs&& cs.myType == CrankShaftType.LARGE) {
-                    if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockWoodMill.FACING).getAxis()) {
+                    if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
                 }
@@ -204,7 +245,15 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         return null;
     }
 
-
+void removeCurrentInputStack(){
+    if (!currentInput.isEmpty()) {
+        BlockPos op =  getBlockPos();
+        ItemEntity ie = new ItemEntity(level,op.getX(),op.getY()+3,op.getZ(), currentInput);
+        level.addFreshEntity(ie);
+    }
+    currentInput = ItemStack.EMPTY;
+    broadcastChangeOfInventoryAndSetChanged();
+}
 
     void completeRecipe() {
         if (currentInput != ItemStack.EMPTY) {
@@ -225,7 +274,7 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
                 }
                  */
                     if (!output.isEmpty()) {
-                        BlockPos op =  getBlockPos().relative(getBlockState().getValue(BlockWoodMill.FACING).getOpposite()).relative(Direction.UP);
+                        BlockPos op =  getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite()).relative(Direction.UP);
                         ItemEntity ie = new ItemEntity(level,op.getX(),op.getY(),op.getZ(), output);
                         level.addFreshEntity(ie);
                     }
@@ -254,33 +303,35 @@ public class EntityWoodMill extends BlockEntity implements ProjectSteam.Core.IMe
         return false;
     }
 
-
-    public InteractionResult use(Player p) {
-        if (!p.isShiftKeyDown()) {
-            if (trySetCurrentInput(p.getMainHandItem()))
-                return InteractionResult.SUCCESS;
-            else
-                return InteractionResult.SUCCESS_NO_ITEM_USED;
-        }
-        return InteractionResult.PASS;
+@Override
+    public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hitResult) {
+    if (!player.isShiftKeyDown()) {
+        if (trySetCurrentInput(player.getMainHandItem()))
+            return InteractionResult.SUCCESS;
+        else
+            return InteractionResult.SUCCESS_NO_ITEM_USED;
     }
+    return InteractionResult.PASS;
+}
 
     public void tick() {
         myMechanicalBlock.mechanicalTick();
 
-        if (!level.isClientSide) {
-            if (!currentInput.isEmpty()) {
-                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
-                if (currentProgress >= timeRequired) {
-                    completeRecipe();
-                    currentProgress = 0;
+        if (getBlockState().getValue(BlockMultiblockMaster.STATE_MULTIBLOCK_FORMED)) {
+            if (!level.isClientSide) {
+                if (!currentInput.isEmpty()) {
+                    currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
+                    if (currentProgress >= timeRequired) {
+                        completeRecipe();
+                        currentProgress = 0;
+                    }
                 }
-            }
-        } else {
-            if (!currentInput.isEmpty()) {
-                currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
-                if (currentProgress >= timeRequired) {
+            } else {
+                if (!currentInput.isEmpty()) {
+                    currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
+                    if (currentProgress >= timeRequired) {
 
+                    }
                 }
             }
         }

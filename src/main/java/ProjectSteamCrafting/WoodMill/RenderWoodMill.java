@@ -1,5 +1,6 @@
 package ProjectSteamCrafting.WoodMill;
 
+import ARLib.multiblockCore.BlockMultiblockMaster;
 import ARLib.obj.Face;
 import ARLib.obj.ModelFormatException;
 import ARLib.obj.WavefrontObject;
@@ -26,6 +27,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.WoolCarpetBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -87,9 +89,10 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
     @Override
     public void render(EntityWoodMill tile, float partialTick, PoseStack stack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         if(tile.isRemoved())return;
+        if(!tile.getBlockState().getValue(BlockMultiblockMaster.STATE_MULTIBLOCK_FORMED))return;
         BlockState state = tile.getBlockState();
         if (state.getBlock() instanceof BlockWoodMill) {
-            Direction facing = state.getValue(BlockWoodMill.FACING);
+            Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
 
             Matrix4f m1 = new Matrix4f(RenderSystem.getModelViewMatrix());
             m1 = m1.mul(stack.last().pose());
