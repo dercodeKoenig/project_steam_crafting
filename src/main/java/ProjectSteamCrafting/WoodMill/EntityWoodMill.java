@@ -340,10 +340,10 @@ void removeCurrentInputStack(){
 
             if (!currentInput.isEmpty()) {
                 double progressMade = Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
-                if (progressMade > 0.0001) {
+                if (progressMade > 0.0001 && currentProgress / timeRequired > 0.175 && currentProgress / timeRequired<0.72) {
                     //if(level.random.nextFloat() < progressMade) {
-                    if(level.getGameTime() % 4 == 0){
-                        level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.1f, 0.5f);
+                    if(level.getGameTime() % 5 == 0){
+                        level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.08f, 0.5f);
                     }
                 }
             }
