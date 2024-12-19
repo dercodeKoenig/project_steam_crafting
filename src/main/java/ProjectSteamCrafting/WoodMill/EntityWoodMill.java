@@ -215,6 +215,7 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
 
     public EntityWoodMill(BlockPos pos, BlockState blockState) {
         super(ENTITY_WOODMILL.get(), pos, blockState);
+        super.forwardInteractionToMaster = true;
     }
 
     CompoundTag getClientSyncUpdateTag(){
