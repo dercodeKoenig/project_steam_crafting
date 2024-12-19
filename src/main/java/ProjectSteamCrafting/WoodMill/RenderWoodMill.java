@@ -170,7 +170,7 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
 
                 stack.scale(0.3f,0.3f,0.3f);
                 stack.mulPose(new Quaternionf().fromAxisAngleDeg(0,0,1f,90f));
-                stack.translate(0.9f,1.4f,1.2f);
+                stack.translate(0.9f,1.4f,1.16f);
 
                 stack.translate(0f,-tile.currentProgress / tile.timeRequired * 1.6f/0.3f,0f);
 

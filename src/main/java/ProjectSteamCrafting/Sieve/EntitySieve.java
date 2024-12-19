@@ -3,6 +3,7 @@ package ProjectSteamCrafting.Sieve;
 import ARLib.network.INetworkTagReceiver;
 import ARLib.network.PacketBlockEntity;
 import ARLib.utils.ItemUtils;
+import ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase;
 import ProjectSteam.Static;
 import ProjectSteamCrafting.Sieve.Items.ItemSieveUpgrade;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -241,7 +242,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         if (myState.getBlock() instanceof BlockSieve) {
             if (side == myState.getValue(BlockSieve.FACING)) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
-                if (t instanceof ProjectSteam.Blocks.Mechanics.CrankShaft.EntityCrankShaftBase cs && cs.myType == CrankShaftType.SMALL) {
+                if (t instanceof EntityCrankShaftBase cs && cs.myType == CrankShaftType.SMALL) {
                     if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockSieve.FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
