@@ -27,6 +27,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -332,6 +334,16 @@ void removeCurrentInputStack(){
                     currentProgress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
                     if (currentProgress >= timeRequired) {
 
+                    }
+                }
+            }
+
+            if (!currentInput.isEmpty()) {
+                double progressMade = Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
+                if (progressMade > 0.0001) {
+                    //if(level.random.nextFloat() < progressMade) {
+                    if(level.getGameTime() % 4 == 0){
+                        level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.1f, 0.5f);
                     }
                 }
             }
