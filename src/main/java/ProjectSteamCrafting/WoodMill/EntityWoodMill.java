@@ -366,7 +366,7 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
                         trySetCurrentInput(i.getItem());
                         i.setExtendedLifetime();
                     }
-                
+
             } else {
                 for (workingRecipe i : currentWorkingRecipes) {
                     i.progress += Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
