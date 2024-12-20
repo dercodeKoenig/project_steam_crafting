@@ -163,24 +163,25 @@ public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
             vertexBuffer_saw.draw();
 
 
+for(EntityWoodMill.workingRecipe i : tile.currentWorkingRecipes) {
+    if (i.currentInput.getItem() instanceof BlockItem bi) {
+        BlockState s = bi.getBlock().defaultBlockState();
+        stack.pushPose();
 
-            if(tile.currentInput.getItem() instanceof BlockItem bi){
-                BlockState s = bi.getBlock().defaultBlockState();
+        stack.scale(0.3f, 0.3f, 0.3f);
+        stack.mulPose(new Quaternionf().fromAxisAngleDeg(0, 0, 1f, 90f));
+        stack.translate(0.9f, 1.4f, 1.16f);
 
+        stack.translate(0f, -i.progress / tile.timeRequired * 1.6f / 0.3f, 0f);
 
-                stack.scale(0.3f,0.3f,0.3f);
-                stack.mulPose(new Quaternionf().fromAxisAngleDeg(0,0,1f,90f));
-                stack.translate(0.9f,1.4f,1.16f);
-
-                stack.translate(0f,-tile.currentProgress / tile.timeRequired * 1.6f/0.3f,0f);
-
-                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
-                stack.translate(0,-1f,0f);
-                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
-                stack.translate(0,-1f,0f);
-                Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s,stack,bufferSource,packedLight,packedOverlay,ModelData.EMPTY,null);
-            }
-
+        Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s, stack, bufferSource, packedLight, packedOverlay, ModelData.EMPTY, null);
+        stack.translate(0, -1f, 0f);
+        Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s, stack, bufferSource, packedLight, packedOverlay, ModelData.EMPTY, null);
+        stack.translate(0, -1f, 0f);
+        Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s, stack, bufferSource, packedLight, packedOverlay, ModelData.EMPTY, null);
+        stack.popPose();
+    }
+}
 
 
             shader.clear();

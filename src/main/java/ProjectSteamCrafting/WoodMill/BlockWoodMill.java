@@ -2,14 +2,10 @@ package ProjectSteamCrafting.WoodMill;
 
 import ARLib.multiblockCore.BlockMultiblockMaster;
 import ARLib.multiblockCore.EntityMultiblockMaster;
-import ProjectSteamCrafting.Sieve.EntitySieve;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
@@ -20,11 +16,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 import static ProjectSteamCrafting.Registry.ENTITY_WOODMILL;
@@ -80,7 +71,7 @@ public class BlockWoodMill extends BlockMultiblockMaster implements EntityBlock 
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if(blockEntity instanceof EntityWoodMill s){
-            s.removeCurrentInputStack();
+            s.removeCurrentInputStacks();
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }
