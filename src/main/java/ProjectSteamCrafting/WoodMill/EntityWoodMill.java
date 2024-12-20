@@ -54,12 +54,12 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
         ItemStack currentInput;
         double progress = 0;
         double additionalResistance = 0;
-        ItemStack outputStack = ItemStack.EMPTY;
+        List<ItemStack> outputStacks = List.of();
     }
 
     List<workingRecipe> currentWorkingRecipes = new ArrayList<>();
 
-    WoodMillConfig config = WoodMillConfigLoader.loadConfig();
+    public static WoodMillConfig config = WoodMillConfigLoader.loadConfig();
 
     double myFriction = config.baseResistance;
     double myInertia = 1;
@@ -261,15 +261,14 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
     }
 
     void completeRecipe(workingRecipe r) {
-
-        ItemStack output = r.outputStack;
-
-        if (!output.isEmpty()) {
-            Vec3 op = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite()).getCenter();
-            ItemEntity ie = new ItemEntity(level, op.x, op.y, op.z, output);
-            float speed = 0.1f;
-            ie.setDeltaMovement(-getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepX() * speed, speed * 2, -getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepZ() * speed);
-            level.addFreshEntity(ie);
+        for(ItemStack output : r.outputStacks) {
+            if (!output.isEmpty()) {
+                Vec3 op = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite()).getCenter();
+                ItemEntity ie = new ItemEntity(level, op.x, op.y, op.z, output);
+                float speed = 0.1f;
+                ie.setDeltaMovement(-getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepX() * speed, speed * 2, -getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepZ() * speed);
+                level.addFreshEntity(ie);
+            }
         }
     }
 
@@ -293,7 +292,9 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
             if (!level.isClientSide) {
                 workingRecipe w = new workingRecipe();
                 w.currentInput = stack.copyWithCount(1);
-                w.outputStack = ItemUtils.getItemStackFromId(r.outputItem.id, r.outputItem.amount);
+                for (WoodMillConfig.MachineRecipe.Item i : r.outputItems) {
+                    w.outputStacks.add(ItemUtils.getItemStackFromId(i.id, i.amount));
+                }
                 w.additionalResistance = r.additionalResistance;
                 stack.shrink(1);
                 currentWorkingRecipes.add(w);
@@ -348,24 +349,24 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
                 }
 
 
-                    BlockPos ip = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING));
+                BlockPos ip = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING));
 
-                    double minX = ip.getX();
-                    double minY = ip.getY() + 0.25;
-                    double minZ = ip.getZ();
-                    double maxX = minX + 1;
-                    double maxY = minY + 1;
-                    double maxZ = minZ + 1;
+                double minX = ip.getX();
+                double minY = ip.getY() + 0.25;
+                double minZ = ip.getZ();
+                double maxX = minX + 1;
+                double maxY = minY + 1;
+                double maxZ = minZ + 1;
 
-                    // Get all entities of class ItemEntity within the bounding box
-                    List<ItemEntity> itemEntities = level.getEntitiesOfClass(
-                            ItemEntity.class,
-                            new AABB(minX, minY, minZ, maxX, maxY, maxZ)
-                    );
-                    for (ItemEntity i : itemEntities) {
-                        trySetCurrentInput(i.getItem());
-                        i.setExtendedLifetime();
-                    }
+                // Get all entities of class ItemEntity within the bounding box
+                List<ItemEntity> itemEntities = level.getEntitiesOfClass(
+                        ItemEntity.class,
+                        new AABB(minX, minY, minZ, maxX, maxY, maxZ)
+                );
+                for (ItemEntity i : itemEntities) {
+                    trySetCurrentInput(i.getItem());
+                    i.setExtendedLifetime();
+                }
 
             } else {
                 for (workingRecipe i : currentWorkingRecipes) {
@@ -379,8 +380,11 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
             double progressMade = Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS)) * config.speedMultiplier;
             if (progressMade > 0.0001 && getRecipeAtSawblade() != null) {
                 //if(level.random.nextFloat() < progressMade) {
-                if (level.getGameTime() % 5 == 0) {
-                    level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.08f, 0.5f);
+                //if (level.getGameTime() % 5 == 0) {
+                for (workingRecipe i : currentWorkingRecipes) {
+                    if ((i.progress - (int) i.progress > 0.15 && i.progress - progressMade - (int) i.progress < 0.15)||(i.progress - (int) i.progress > 0.65 && i.progress - progressMade - (int) i.progress < 0.65)) {
+                        level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.1f, 0.5f);
+                    }
                 }
             }
         }

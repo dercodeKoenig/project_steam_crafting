@@ -49,7 +49,7 @@ import static ProjectSteamCrafting.Registry.SIEVE_HOPPER_UPGRADE;
 
 public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMechanicalBlockProvider, INetworkTagReceiver, ICrankShaftConnector {
 
-    static SieveConfig config = SieveConfigLoader.loadConfig();
+    public static SieveConfig config = SieveConfigLoader.loadConfig();
 
     VertexBuffer myInputRendererBuffer;
     ItemStack lastInputStackForRender = ItemStack.EMPTY;
@@ -323,7 +323,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     SieveConfig.MachineRecipe getRecipeForInputs(ItemStack inputs) {
         for (SieveConfig.MachineRecipe i : config.recipes) {
             if (ItemUtils.matches(i.requiredMesh, myMesh)) {
-                SieveConfig.MachineRecipe.Item input = i.inputItems.getFirst();
+                SieveConfig.MachineRecipe.Item input = i.inputItem;
                 if (ItemUtils.matches(input.id, inputs)) {
                     return i;
                 }
