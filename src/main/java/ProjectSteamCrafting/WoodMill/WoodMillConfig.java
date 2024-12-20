@@ -28,12 +28,12 @@ public class WoodMillConfig {
 
         public static class MachineRecipe {
             public Item inputItem = new Item();
-            public List<Item> outputItems = List.of();
+            public List<Item> outputItems = new ArrayList<>();
             public float additionalResistance = 10f;
 
             public static class Item {
                 public String id = "";
-                public int amount = 0;
+                public int amount = 1;
             }
         }
 
