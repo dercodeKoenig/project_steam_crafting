@@ -264,31 +264,19 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
 
         ItemStack output = r.outputStack;
 
-                /*
-                for (Direction i : Direction.values()) {
-                    if(i==Direction.UP)continue;
-                    IItemHandler inv = level.getCapability(Capabilities.ItemHandler.BLOCK, getBlockPos().relative(i), i.getOpposite());
-                    if (inv instanceof IItemHandler) {
-                        for (int j = 0; j < inv.getSlots(); j++) {
-                            output = inv.insertItem(j, output, false);
-                            if (output.isEmpty()) break;
-                        }
-                    }
-                }
-                 */
         if (!output.isEmpty()) {
             Vec3 op = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite()).getCenter();
             ItemEntity ie = new ItemEntity(level, op.x, op.y, op.z, output);
             float speed = 0.1f;
-            ie.setDeltaMovement(-getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepX() * speed, speed*2, -getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepZ() * speed);
+            ie.setDeltaMovement(-getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepX() * speed, speed * 2, -getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getStepZ() * speed);
             level.addFreshEntity(ie);
         }
     }
 
     public boolean canFitInput() {
         boolean canFitInputs = true;
-        for(workingRecipe i : currentWorkingRecipes)
-            if(i.progress / timeRequired < 0.65) {
+        for (workingRecipe i : currentWorkingRecipes)
+            if (i.progress / timeRequired < 0.65) {
                 canFitInputs = false;
                 break;
             }
@@ -298,11 +286,11 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
 
     boolean trySetCurrentInput(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        if(!canFitInput())return false;
+        if (!canFitInput()) return false;
 
         WoodMillConfig.MachineRecipe r = getRecipeForInputs(stack);
         if (r != null) {
-            if(!level.isClientSide) {
+            if (!level.isClientSide) {
                 workingRecipe w = new workingRecipe();
                 w.currentInput = stack.copyWithCount(1);
                 w.outputStack = ItemUtils.getItemStackFromId(r.outputItem.id, r.outputItem.amount);
@@ -316,24 +304,24 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
         return false;
     }
 
-@Override
+    @Override
     public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hitResult) {
-    if (!player.isShiftKeyDown()) {
-        if (trySetCurrentInput(player.getMainHandItem()))
-            return InteractionResult.SUCCESS;
-        else
-            return InteractionResult.SUCCESS_NO_ITEM_USED;
+        if (!player.isShiftKeyDown()) {
+            if (trySetCurrentInput(player.getMainHandItem()))
+                return InteractionResult.SUCCESS;
+            else
+                return InteractionResult.SUCCESS_NO_ITEM_USED;
+        }
+        return InteractionResult.PASS;
     }
-    return InteractionResult.PASS;
-}
 
-public workingRecipe getRecipeAtSawblade() {
-        for(workingRecipe i : currentWorkingRecipes) {
-            if(i.progress / timeRequired > 0.175 && i.progress / timeRequired < 0.72)
+    public workingRecipe getRecipeAtSawblade() {
+        for (workingRecipe i : currentWorkingRecipes) {
+            if (i.progress / timeRequired > 0.175 && i.progress / timeRequired < 0.72)
                 return i;
         }
         return null;
-}
+    }
 
     public void tick() {
         myMechanicalBlock.mechanicalTick();
@@ -353,13 +341,13 @@ public workingRecipe getRecipeAtSawblade() {
                     broadcastChangeOfInventoryAndSetChanged();
                 }
                 workingRecipe r = getRecipeAtSawblade();
-                if(r!=null){
-                    myFriction = config.baseResistance+r.additionalResistance;
-                }else{
+                if (r != null) {
+                    myFriction = config.baseResistance + r.additionalResistance;
+                } else {
                     myFriction = config.baseResistance;
                 }
 
-                if(canFitInput()) {
+                if (canFitInput()) {
                     BlockPos ip = getBlockPos().relative(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING));
 
                     double minX = ip.getX();
@@ -404,9 +392,11 @@ public workingRecipe getRecipeAtSawblade() {
 
 
     static List<CrankShaftType> allowedCrankshaftTypes = new ArrayList();
-    static{
+
+    static {
         allowedCrankshaftTypes.add(CrankShaftType.LARGE);
     }
+
     @Override
     public List<CrankShaftType> getConnectableCrankshafts() {
         return allowedCrankshaftTypes;
