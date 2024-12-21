@@ -1,5 +1,9 @@
 package ProjectSteamCrafting.SpinningWheel;
 
+import ARLib.gui.GuiHandlerBlockEntity;
+import ARLib.gui.IGuiHandler;
+import ARLib.gui.modules.guiModuleItemHandlerSlot;
+import ARLib.gui.modules.guiModulePlayerInventorySlot;
 import ARLib.network.INetworkTagReceiver;
 import ARLib.utils.BlockEntityItemStackHandler;
 import ARLib.utils.InventoryUtils;
@@ -30,23 +34,19 @@ import static ProjectSteamCrafting.Registry.ENTITY_SPINNING_WHEEL;
 
 public class EntitySpinningWheel extends BlockEntity implements INetworkTagReceiver, IMechanicalBlockProvider {
 
-    SpinningWheelConfig config = SpinningWheelConfigLoader.loadConfig();
+    public static SpinningWheelConfig config = SpinningWheelConfigLoader.loadConfig();
 
-    SpinningWheelConfig.MachineRecipe currentRecipe = null;
-    double currentProgress;
+    public SpinningWheelConfig.MachineRecipe currentRecipe = null;
+    public double currentProgress;
 
-    BlockEntityItemStackHandler inventoryOutput;
-    BlockEntityItemStackHandler inventoryInput;
-
+    public BlockEntityItemStackHandler inventoryOutput;
+    public BlockEntityItemStackHandler inventoryInput;
     List<IItemHandler> itemHandlerInputs = new ArrayList<>();
     List<IItemHandler> itemHandlerOutputs = new ArrayList<>();
 
-    // not used but required by the utils lib
-    List<IFluidHandler> fluidHandlerInputs = new ArrayList<>();
-    List<IFluidHandler> fluidHandlerOutputs = new ArrayList<>();
+    public IGuiHandler guiHandler;
 
-
-    int ticksRemainingForForce = 0;
+    public int ticksRemainingForForce = 0;
     double myFriction = config.baseResistance;
     double myInertia = 1;
     double maxStress = 100;
@@ -87,6 +87,32 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
 
         itemHandlerInputs.add(inventoryInput);
         itemHandlerOutputs.add(inventoryOutput);
+
+        guiHandler = new GuiHandlerBlockEntity(this);
+        for(guiModulePlayerInventorySlot i : guiModulePlayerInventorySlot.makePlayerHotbarModules(10,130,100,1,0,guiHandler)){
+            guiHandler.registerModule(i);
+        }
+        for(guiModulePlayerInventorySlot i :guiModulePlayerInventorySlot.makePlayerInventoryModules(10,70,200,1,0,guiHandler)){
+            guiHandler.registerModule(i);
+        }
+
+        guiModuleItemHandlerSlot i1 = new guiModuleItemHandlerSlot(0,inventoryInput,0,0,1,guiHandler,20,10);
+        guiHandler.registerModule(i1);
+        guiModuleItemHandlerSlot i2 = new guiModuleItemHandlerSlot(1,inventoryInput,1,0,1,guiHandler,20,30);
+        guiHandler.registerModule(i2);
+        guiModuleItemHandlerSlot i3 = new guiModuleItemHandlerSlot(2,inventoryInput,2,0,1,guiHandler,40,10);
+        guiHandler.registerModule(i3);
+        guiModuleItemHandlerSlot i4 = new guiModuleItemHandlerSlot(3,inventoryInput,3,0,1,guiHandler,40,30);
+        guiHandler.registerModule(i4);
+
+        guiModuleItemHandlerSlot o1 = new guiModuleItemHandlerSlot(4,inventoryOutput,0,2,1,guiHandler,110,10);
+        guiHandler.registerModule(o1);
+        guiModuleItemHandlerSlot o2 = new guiModuleItemHandlerSlot(5,inventoryOutput,1,2,1,guiHandler,110,30);
+        guiHandler.registerModule(o2);
+        guiModuleItemHandlerSlot o3 = new guiModuleItemHandlerSlot(6,inventoryOutput,2,2,1,guiHandler,130,10);
+        guiHandler.registerModule(o3);
+        guiModuleItemHandlerSlot o4 = new guiModuleItemHandlerSlot(7,inventoryOutput,3,2,1,guiHandler,130,30);
+        guiHandler.registerModule(o4);
     }
 
     @Override
@@ -102,27 +128,43 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
 
     public void scanFornewRecipe() {
         for (SpinningWheelConfig.MachineRecipe r : config.recipes) {
-            if(InventoryUtils.hasInputs(itemHandlerInputs, fluidHandlerInputs, List.of(new recipePart(r.inputItem.id,r.inputItem.amount,1)))){
+            if(InventoryUtils.hasInputs(itemHandlerInputs, new ArrayList<>(), List.of(new recipePart(r.inputItem.id,r.inputItem.amount,1)))){
                 currentRecipe = r;
                 break;
             }
         }
     }
 
+    public boolean tryAddManualWork() {
+        if (ticksRemainingForForce < 5 ) {
+            ticksRemainingForForce += 5;
+            return true;
+        }
+        return false;
+    }
     public InteractionResult use(Player player) {
-        return InteractionResult.PASS;
+        if(player.isShiftKeyDown()) {
+            if (tryAddManualWork()) {
+                player.causeFoodExhaustion(0.2f);
+            }
+        }
+        else{
+            if(level.isClientSide)
+                guiHandler.openGui(180,160);
+        }
+        return InteractionResult.SUCCESS_NO_ITEM_USED;
     }
 
     public void completeCurrentRecipe() {
         for (int i = 0; i < currentRecipe.inputItem.amount; i++) {
             if (level.random.nextFloat() < currentRecipe.inputItem.p) {
-                InventoryUtils.consumeElements(fluidHandlerInputs, itemHandlerInputs, currentRecipe.inputItem.id, 1, false);
+                InventoryUtils.consumeElements(new ArrayList<>(), itemHandlerInputs, currentRecipe.inputItem.id, 1, false);
             }
         }
         for (SpinningWheelConfig.MachineRecipe.Item output : currentRecipe.outputItems) {
             for (int i = 0; i < output.amount; i++) {
                 if (level.random.nextFloat() < output.p) {
-                    InventoryUtils.createElements(fluidHandlerOutputs, itemHandlerOutputs, output.id, 1);
+                    InventoryUtils.createElements(new ArrayList<>(), itemHandlerOutputs, output.id, 1);
                 }
             }
         }
@@ -131,19 +173,42 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
 
     public void tick() {
         myMechanicalBlock.mechanicalTick();
+        if(!level.isClientSide)
+            IGuiHandler.serverTick(guiHandler);
 
         if (currentRecipe == null) {
             scanFornewRecipe();
-        }
-        if (InventoryUtils.hasInputs(itemHandlerInputs, fluidHandlerInputs, List.of(new recipePart(currentRecipe.inputItem.id, currentRecipe.inputItem.amount, 1)))) {
-            double progressMade = Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
-            currentProgress += progressMade;
-            if (currentProgress >= currentRecipe.timeRequired) {
-                if(InventoryUtils.canFitElements(itemHandlerOutputs,fluidHandlerOutputs,))
-                completeCurrentRecipe();
+        }else {
+            if (InventoryUtils.hasInputs(itemHandlerInputs, new ArrayList<>(), List.of(new recipePart(currentRecipe.inputItem.id, currentRecipe.inputItem.amount, 1)))) {
+                double progressMade = Math.abs((float) (Static.rad_to_degree(myMechanicalBlock.internalVelocity) / 360f / Static.TPS));
+                currentProgress += progressMade;
+                if (currentProgress >= currentRecipe.timeRequired) {
+                    List<recipePart> myOutputPartsForUtilsLib = new ArrayList<>();
+                    for (SpinningWheelConfig.MachineRecipe.Item i : currentRecipe.outputItems) {
+                        myOutputPartsForUtilsLib.add(new recipePart(i.id, i.amount, i.p));
+                    }
+                    if (InventoryUtils.canFitElements(itemHandlerOutputs, new ArrayList<>(), myOutputPartsForUtilsLib)) {
+                        completeCurrentRecipe();
+                    }
+                }
+            } else {
+                resetRecipe();
             }
-        } else {
-            resetRecipe();
+        }
+        if(currentRecipe == null){
+            myFriction = config.baseResistance;
+        }else{
+            myFriction = config.baseResistance + currentRecipe.additionalResistance;
+        }
+
+        if (!level.isClientSide) {
+            if (ticksRemainingForForce > 0) {
+                ticksRemainingForForce--;
+                myForce = config.clickForce - config.k * myMechanicalBlock.internalVelocity;
+            } else {
+                myForce = 0;
+                ticksRemainingForForce = 0;
+            }
         }
     }
 
@@ -154,11 +219,13 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
     @Override
     public void readServer(CompoundTag compoundTag) {
         myMechanicalBlock.mechanicalReadServer(compoundTag);
+        guiHandler.readServer(compoundTag);
     }
 
     @Override
     public void readClient(CompoundTag compoundTag) {
         myMechanicalBlock.mechanicalReadClient(compoundTag);
+        guiHandler.readClient(compoundTag);
     }
 
     @Override
