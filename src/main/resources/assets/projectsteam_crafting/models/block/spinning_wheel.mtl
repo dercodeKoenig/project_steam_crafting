@@ -9,14 +9,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 1
-map_Kd projectsteam_crafting:block/spinning_wheel
-
-newmtl Material_planks
-Ns 0.000000
-Ka 1.000000 1.000000 1.000000
-Ks 0.000000 0.000000 0.000000
-Ke 0.000000 0.000000 0.000000
-Ni 1.500000
-d 1.000000
-illum 1
-map_Kd projectsteam:block/planks
+map_Kd C:/Users/Dr-Hc/Desktop/project_steam_crafting/src/main/resources/assets/projectsteam_crafting/textures/block/spinning_wheel.png

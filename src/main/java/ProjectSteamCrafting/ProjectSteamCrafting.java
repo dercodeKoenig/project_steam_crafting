@@ -2,6 +2,7 @@ package ProjectSteamCrafting;
 
 
 import ProjectSteamCrafting.Sieve.RenderSieve;
+import ProjectSteamCrafting.SpinningWheel.RenderSpinningWheel;
 import ProjectSteamCrafting.WoodMill.RenderWoodMill;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -44,6 +45,7 @@ public class ProjectSteamCrafting {
     public void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ENTITY_SIEVE.get(), RenderSieve::new);
         event.registerBlockEntityRenderer(ENTITY_WOODMILL.get(), RenderWoodMill::new);
+        event.registerBlockEntityRenderer(ENTITY_SPINNING_WHEEL.get(), RenderSpinningWheel::new);
 
     }
 
