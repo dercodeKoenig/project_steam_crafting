@@ -54,7 +54,7 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
         ItemStack currentInput;
         double progress = 0;
         double additionalResistance = 0;
-        List<ItemStack> outputStacks = List.of();
+        List<ItemStack> outputStacks = new ArrayList<>();
     }
 
     List<workingRecipe> currentWorkingRecipes = new ArrayList<>();
@@ -318,7 +318,7 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
 
     public workingRecipe getRecipeAtSawblade() {
         for (workingRecipe i : currentWorkingRecipes) {
-            if (i.progress / timeRequired > 0.175 && i.progress / timeRequired < 0.72)
+            if (i.progress / timeRequired > 0.165 && i.progress / timeRequired < 0.72)
                 return i;
         }
         return null;
@@ -381,8 +381,12 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
             if (progressMade > 0.0001 && getRecipeAtSawblade() != null) {
                 //if(level.random.nextFloat() < progressMade) {
                 //if (level.getGameTime() % 5 == 0) {
+                float maxOffset = 0.25f;
+                float maxSpeedForNoOffset = 0.2f;
+                float offset = 0.25f+(float) (maxOffset - (progressMade / maxSpeedForNoOffset)*maxOffset);
+System.out.println(progressMade+":"+offset);
                 for (workingRecipe i : currentWorkingRecipes) {
-                    if ((i.progress - (int) i.progress > 0.15 && i.progress - progressMade - (int) i.progress < 0.15)||(i.progress - (int) i.progress > 0.65 && i.progress - progressMade - (int) i.progress < 0.65)) {
+                    if ((i.progress - (int) i.progress > offset && i.progress - progressMade - (int) i.progress < offset)||(i.progress - (int) i.progress > offset+0.5 && i.progress - progressMade - (int) i.progress < offset+0.5)) {
                         level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.1f, 0.5f);
                     }
                 }
