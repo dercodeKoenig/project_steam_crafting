@@ -48,7 +48,7 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
 
     public int ticksRemainingForForce = 0;
     double myFriction = config.baseResistance;
-    double myInertia = 1;
+    double myInertia = 10;
     double maxStress = 100;
     double myForce = 0;
 
