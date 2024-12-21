@@ -100,8 +100,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
 
         @Override
         public double getTorqueProduced(Direction face) {
-            double actualForce = myForce * Math.max(0, (1 - Math.abs(internalVelocity) / max_speed));
-            return actualForce;
+            return myForce;
         }
 
         @Override
