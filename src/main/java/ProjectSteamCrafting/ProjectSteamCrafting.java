@@ -57,6 +57,9 @@ public class ProjectSteamCrafting {
             e.accept(SIEVE_HOPPER_UPGRADE.get());
 
 
+            e.accept(SPINNING_WHEEL.get());
+
+
             e.accept(WOODMILL.get());
         }
     }

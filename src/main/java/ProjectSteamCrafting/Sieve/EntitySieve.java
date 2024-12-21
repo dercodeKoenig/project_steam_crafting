@@ -32,6 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import ProjectSteam.Core.AbstractMechanicalBlock;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.ICrankShaftConnector;
 import ProjectSteam.Blocks.Mechanics.CrankShaft.BlockCrankShaftBase;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
@@ -241,10 +242,10 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     public AbstractMechanicalBlock getMechanicalBlock(Direction side) {
         BlockState myState = getBlockState();
         if (myState.getBlock() instanceof BlockSieve) {
-            if (side == myState.getValue(BlockSieve.FACING)) {
+            if (side == myState.getValue(BlockStateProperties.HORIZONTAL_FACING)) {
                 BlockEntity t = level.getBlockEntity(getBlockPos().relative(side));
                 if (t instanceof EntityCrankShaftBase cs && cs.myType == CrankShaftType.SMALL) {
-                    if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockSieve.FACING).getAxis()) {
+                    if (cs.getBlockState().getValue(BlockCrankShaftBase.ROTATION_AXIS) != getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis()) {
                         return myMechanicalBlock;
                     }
                 }
@@ -443,7 +444,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
     }
 
     public boolean tryAddManualWork() {
-        if (ticksRemainingForForce < 5 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
+        if (ticksRemainingForForce < 5 && getMechanicalBlock(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING)) == null) {
             ticksRemainingForForce += 5;
             return true;
         }
@@ -454,7 +455,7 @@ public class EntitySieve extends BlockEntity implements ProjectSteam.Core.IMecha
         myMechanicalBlock.mechanicalTick();
 
         if (!level.isClientSide) {
-            if (ticksRemainingForForce > 0 && getMechanicalBlock(getBlockState().getValue(BlockSieve.FACING)) == null) {
+            if (ticksRemainingForForce > 0 && getMechanicalBlock(getBlockState().getValue(BlockStateProperties.HORIZONTAL_FACING)) == null) {
                 ticksRemainingForForce--;
                 myForce = click_force - k * myMechanicalBlock.internalVelocity;
             } else {

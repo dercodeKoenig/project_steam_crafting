@@ -1,17 +1,14 @@
-package ProjectSteamCrafting.Sieve;
+package ProjectSteamCrafting.SpinningWheel;
 
+import ProjectSteamCrafting.Sieve.EntitySieve;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.stats.Stats;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -20,7 +17,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -29,51 +25,39 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 import static ProjectSteamCrafting.Registry.ENTITY_SIEVE;
+import static ProjectSteamCrafting.Registry.ENTITY_SPINNING_WHEEL;
 
-public class BlockSieve extends Block implements EntityBlock {
+public class BlockSpinningWheel extends Block implements EntityBlock {
 
-    public static BooleanProperty HOPPER_UPGRADE = BooleanProperty.create("has_hopper");
-
-
-    public BlockSieve() {
-        super(Properties.of().noOcclusion().strength(1.0f));
+    public BlockSpinningWheel() {
+        super(Properties.of().noOcclusion().strength(1.0f).noOcclusion());
         BlockState state = this.stateDefinition.any();
         state = state.setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.SOUTH);
-        state = state.setValue(HOPPER_UPGRADE, false);
         this.registerDefaultState(state);
-    }
-    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
-        if (state.getValue(HOPPER_UPGRADE))
-            return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 1F, (double) 1F);
-        else
-            return Shapes.create((double) 0F, (double) 0F, (double) 0F, (double) 1F, (double) 0.75F, (double) 1F);
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(BlockStateProperties.HORIZONTAL_FACING);
-        builder.add(HOPPER_UPGRADE);
         super.createBlockStateDefinition(builder);
     }
 
     @Override
-    public @Nullable BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return ENTITY_SIEVE.get().create(pos, state);
+    public @Nullable BlockEntity newBlockEntity(BlockPos blockPos, BlockState blockState) {
+        return ENTITY_SPINNING_WHEEL.get().create(blockPos, blockState);
     }
 
     @Override
     public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
         BlockEntity b = level.getBlockEntity(pos);
-        if(b instanceof EntitySieve h)
-            return h.use(player);
+        if(b instanceof EntitySpinningWheel s)
+            return s.use(player);
         return InteractionResult.PASS;
     }
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if(blockEntity instanceof EntitySieve s){
-            s.removeMyMesh();
-            s.removeHopperUpgrade();
+        if(blockEntity instanceof EntitySpinningWheel s){
         }
         super.onRemove(state, level, pos, newState, isMoving);
     }
@@ -89,8 +73,8 @@ public class BlockSieve extends Block implements EntityBlock {
 
 
 
-        @Override
+    @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return EntitySieve::tick;
+        return EntitySpinningWheel::tick;
     }
 }

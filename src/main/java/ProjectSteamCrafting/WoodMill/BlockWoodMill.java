@@ -23,7 +23,7 @@ import static ProjectSteamCrafting.Registry.ENTITY_WOODMILL;
 public class BlockWoodMill extends BlockMultiblockMaster implements EntityBlock {
 
     public BlockWoodMill() {
-        super(Properties.of().noOcclusion().strength(1.0f).noOcclusion());
+        super(Properties.of().noOcclusion().strength(1.0f));
     }
 
     @Override
@@ -44,8 +44,6 @@ public class BlockWoodMill extends BlockMultiblockMaster implements EntityBlock 
             else
                 level.setBlock(pos, state.setValue(BlockStateProperties.HORIZONTAL_FACING, placer.getDirection().getOpposite()), 3);
         }
-
-        super.setPlacedBy(level, pos, state, placer, stack); // Call the super method for any additional behavior
     }
 
     @Override

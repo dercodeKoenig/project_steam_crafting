@@ -23,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -137,7 +138,7 @@ public class RenderSieve implements BlockEntityRenderer<EntitySieve> {
         if(tile.isRemoved())return;
         BlockState state = tile.getBlockState();
         if (state.getBlock() instanceof BlockSieve) {
-            Direction facing = state.getValue(BlockSieve.FACING);
+            Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
 
             Matrix4f m1 = new Matrix4f(RenderSystem.getModelViewMatrix());
             m1 = m1.mul(stack.last().pose());

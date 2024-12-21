@@ -384,7 +384,7 @@ public class EntityWoodMill extends EntityMultiblockMaster implements ProjectSte
                 float maxOffset = 0.25f;
                 float maxSpeedForNoOffset = 0.2f;
                 float offset = 0.25f+(float) (maxOffset - (progressMade / maxSpeedForNoOffset)*maxOffset);
-System.out.println(progressMade+":"+offset);
+
                 for (workingRecipe i : currentWorkingRecipes) {
                     if ((i.progress - (int) i.progress > offset && i.progress - progressMade - (int) i.progress < offset)||(i.progress - (int) i.progress > offset+0.5 && i.progress - progressMade - (int) i.progress < offset+0.5)) {
                         level.playSound(null, getBlockPos(), SoundEvents.FENCE_GATE_OPEN, SoundSource.BLOCKS, 0.1f, 0.5f);

@@ -4,6 +4,8 @@ import ProjectSteamCrafting.Sieve.Items.ItemSieveUpgrade;
 import ProjectSteamCrafting.Sieve.Items.Mesh.StringMesh;
 import ProjectSteamCrafting.Sieve.BlockSieve;
 import ProjectSteamCrafting.Sieve.EntitySieve;
+import ProjectSteamCrafting.SpinningWheel.BlockSpinningWheel;
+import ProjectSteamCrafting.SpinningWheel.EntitySpinningWheel;
 import ProjectSteamCrafting.WoodMill.BlockWoodMill;
 import ProjectSteamCrafting.WoodMill.EntityWoodMill;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -53,8 +55,20 @@ public static final Supplier<Item> STRING_MESH = ITEMS.register(
             () -> BlockEntityType.Builder.of(EntityWoodMill::new, WOODMILL.get()).build(null)
     );
 
+
+
+    public static final Supplier<Block> SPINNING_WHEEL = BLOCKS.register(
+            "spinning_wheel",
+            () -> new BlockSpinningWheel()
+    );
+    public static final Supplier<BlockEntityType<EntitySpinningWheel>> ENTITY_SPINNING_WHEEL = BLOCK_ENTITIES.register(
+            "entity_spinning_wheel",
+            () -> BlockEntityType.Builder.of(EntitySpinningWheel::new, SPINNING_WHEEL.get()).build(null)
+    );
+
     static {
         registerBlockItem("sieve", SIEVE);
+        registerBlockItem("spinning_wheel", SPINNING_WHEEL);
         registerBlockItem("woodmill", WOODMILL);
     }
 
