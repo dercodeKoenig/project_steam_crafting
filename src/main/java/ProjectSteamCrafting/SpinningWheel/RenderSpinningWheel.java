@@ -29,8 +29,7 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
-import static ProjectSteam.Static.POSITION_COLOR_TEXTURE_NORMAL_LIGHT;
-import static ProjectSteam.Static.TPS;
+import static ProjectSteam.Static.*;
 import static net.minecraft.client.renderer.RenderStateShard.*;
 
 public class RenderSpinningWheel implements BlockEntityRenderer<EntitySpinningWheel> {
@@ -103,7 +102,7 @@ public class RenderSpinningWheel implements BlockEntityRenderer<EntitySpinningWh
 
             Matrix4f m2 = new Matrix4f(m1);
             m2 = m2.translate(0,0,-0.2f);
-            m2 = m2.rotate(new Quaternionf().fromAxisAngleDeg(0f,0f,1f, (float) tile.myMechanicalBlock.currentRotation));
+            m2 = m2.rotate(new Quaternionf().fromAxisAngleDeg(0f,0f,1f, (float) (tile.myMechanicalBlock.currentRotation + rad_to_degree(tile.myMechanicalBlock.internalVelocity)/TPS*partialTick)));
             shader.setDefaultUniforms(VertexFormat.Mode.TRIANGLES, m2, RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
             shader.getUniform("NormalMatrix").set((new Matrix3f(m2)).invert().transpose());
             shader.getUniform("UV2").set(packedLight & '\uffff', packedLight >> 16 & '\uffff');

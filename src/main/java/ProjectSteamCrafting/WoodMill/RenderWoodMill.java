@@ -33,8 +33,7 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
-import static ProjectSteam.Static.POSITION_COLOR_TEXTURE_NORMAL_LIGHT;
-import static ProjectSteam.Static.TPS;
+import static ProjectSteam.Static.*;
 import static net.minecraft.client.renderer.RenderStateShard.*;
 
 public class RenderWoodMill implements BlockEntityRenderer<EntityWoodMill> {
@@ -172,7 +171,8 @@ for(EntityWoodMill.workingRecipe i : tile.currentWorkingRecipes) {
         stack.mulPose(new Quaternionf().fromAxisAngleDeg(0, 0, 1f, 90f));
         stack.translate(0.9f, 1.4f, 1.16f);
 
-        stack.translate(0f, -i.progress / tile.timeRequired * 1.6f / 0.3f, 0f);
+        float partialOffset =Math.abs((float) (rad_to_degree(tile.myMechanicalBlock.internalVelocity) / 360f / TPS)) * EntityWoodMill.config.speedMultiplier * partialTick;
+        stack.translate(0f, -(i.progress+partialOffset) / tile.timeRequired * 1.6f / 0.3f, 0f);
 
         Minecraft.getInstance().getBlockRenderer().renderSingleBlock(s, stack, bufferSource, packedLight, packedOverlay, ModelData.EMPTY, null);
         stack.translate(0, -1f, 0f);

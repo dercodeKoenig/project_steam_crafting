@@ -232,11 +232,17 @@ public class EntitySpinningWheel extends BlockEntity implements INetworkTagRecei
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         myMechanicalBlock.mechanicalLoadAdditional(tag, registries);
+
+        inventoryOutput.deserializeNBT(registries,tag.getCompound("inventoryOutput"));
+        inventoryInput.deserializeNBT(registries,tag.getCompound("inventoryInput"));
     }
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         myMechanicalBlock.mechanicalSaveAdditional(tag, registries);
+
+        tag.put("inventoryOutput", inventoryOutput.serializeNBT(registries)) ;
+        tag.put("inventoryInput", inventoryInput.serializeNBT(registries)) ;
     }
 
     @Override

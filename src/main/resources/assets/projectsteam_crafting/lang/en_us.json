@@ -10,8 +10,8 @@
   "item.projectsteam_crafting.woodmill": "Wood Mill",
 
 
-  "block.projectsteam_crafting.spinning_wheel": "Spinning Wheel",
-  "item.projectsteam_crafting.spinning_wheel": "Spinning Wheel"
+  "block.projectsteam_crafting.spinning_wheel": "Manual Spinning Wheel",
+  "item.projectsteam_crafting.spinning_wheel": "Manual Spinning Wheel"
 
 }
 
